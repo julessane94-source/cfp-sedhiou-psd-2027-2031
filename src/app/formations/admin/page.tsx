@@ -1,240 +1,189 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
-import { ArrowLeft, GraduationCap, UserPlus } from "lucide-react";
-
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-async function ajouterFormation(formData: FormData) {
-  "use server";
-
-  const code = String(formData.get("code") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const category = String(formData.get("category") ?? "").trim();
-  const level = String(formData.get("level") ?? "").trim();
-  const duration = String(formData.get("duration") ?? "").trim();
-
-  if (!code || !title) return;
-
-  await prisma.training.create({
-    data: {
-      code,
-      title,
-      category: category || null,
-      level: level || null,
-      duration: duration || null,
-      active: true,
-    },
-  });
-
-  revalidatePath("/formations");
-  revalidatePath("/formations/admin");
-}
-
-async function ajouterApprenant(formData: FormData) {
-  "use server";
-
-  const matricule = String(formData.get("matricule") ?? "").trim();
-  const firstName = String(formData.get("firstName") ?? "").trim();
-  const lastName = String(formData.get("lastName") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-
-  if (!matricule || !firstName || !lastName) return;
-
-  await prisma.learner.create({
-    data: {
-      matricule,
-      firstName,
-      lastName,
-      phone: phone || null,
-      email: email || null,
-    },
-  });
-
-  revalidatePath("/formations");
-  revalidatePath("/formations/admin");
-}
-
-async function inscrireApprenant(formData: FormData) {
-  "use server";
-
-  const learnerId = String(formData.get("learnerId") ?? "");
-  const trainingId = String(formData.get("trainingId") ?? "");
-
-  if (!learnerId || !trainingId) return;
-
-  await prisma.enrollment.create({
-    data: {
-      learnerId,
-      trainingId,
-      startDate: new Date(),
-      status: "INSCRIT",
-    },
-  });
-
-  revalidatePath("/formations");
-  revalidatePath("/formations/admin");
-}
-
 export default async function FormationsAdminPage() {
-  const [formations, apprenants] = await Promise.all([
+  const [formations, learners] = await Promise.all([
     prisma.training.findMany({
       where: { active: true },
       orderBy: { title: "asc" },
     }),
     prisma.learner.findMany({
-      orderBy: [
-        { lastName: "asc" },
-        { firstName: "asc" },
-      ],
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
   ]);
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Administration des formations
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Gestion des formations, des apprenants et des inscriptions.
+            </p>
+          </div>
 
-        <Link
-          href="/formations"
-          className="inline-flex items-center gap-2 text-sm font-medium text-sky-700"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour aux formations
-        </Link>
-
-        <div className="mt-6">
-          <p className="text-sm font-semibold text-sky-700">
-            Administration
-          </p>
-
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">
-            Gestion des formations et apprenants
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Création des formations, enregistrement des apprenants et
-            inscriptions.
-          </p>
+          <Link
+            href="/formations"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            ← Retour aux formations
+          </Link>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900">
+              Ajouter une formation
+            </h2>
 
-          {/* FORMATION */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-sky-50 p-3">
-                <GraduationCap className="h-5 w-5 text-sky-700" />
+            <form
+              action="/api/formations/admin"
+              method="POST"
+              className="mt-6 space-y-4"
+            >
+              <input type="hidden" name="action" value="formation" />
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Code
+                </label>
+                <input
+                  name="code"
+                  required
+                  placeholder="Ex. INFO-01"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
               </div>
 
               <div>
-                <h2 className="font-bold text-slate-950">
-                  Nouvelle formation
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Ajouter une formation au catalogue.
-                </p>
+                <label className="text-sm font-medium text-slate-700">
+                  Nom de la formation
+                </label>
+                <input
+                  name="title"
+                  required
+                  placeholder="Nom de la formation"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
               </div>
-            </div>
 
-            <form action={ajouterFormation} className="mt-6 space-y-4">
-              <input
-                name="code"
-                required
-                placeholder="Code — ex. INFO-01"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-sky-500"
-              />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Catégorie
+                </label>
+                <input
+                  name="category"
+                  placeholder="Ex. Informatique"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </div>
 
-              <input
-                name="title"
-                required
-                placeholder="Intitulé de la formation"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-sky-500"
-              />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Niveau
+                </label>
+                <input
+                  name="level"
+                  placeholder="Ex. CAP, BT, BTS..."
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </div>
 
-              <input
-                name="category"
-                placeholder="Catégorie"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-sky-500"
-              />
-
-              <input
-                name="level"
-                placeholder="Niveau"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-sky-500"
-              />
-
-              <input
-                name="duration"
-                placeholder="Durée — ex. 12 mois"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-sky-500"
-              />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Durée
+                </label>
+                <input
+                  name="duration"
+                  placeholder="Ex. 2 ans"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </div>
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-sky-700 px-4 py-3 text-sm font-bold text-white hover:bg-sky-800"
+                className="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white hover:bg-slate-800"
               >
                 Ajouter la formation
               </button>
             </form>
           </section>
 
-          {/* APPRENANT */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-emerald-50 p-3">
-                <UserPlus className="h-5 w-5 text-emerald-700" />
+          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-900">
+              Ajouter un apprenant
+            </h2>
+
+            <form
+              action="/api/formations/admin"
+              method="POST"
+              className="mt-6 space-y-4"
+            >
+              <input type="hidden" name="action" value="apprenant" />
+
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Matricule
+                </label>
+                <input
+                  name="matricule"
+                  required
+                  placeholder="Matricule"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
               </div>
 
               <div>
-                <h2 className="font-bold text-slate-950">
-                  Nouvel apprenant
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Enregistrer un nouvel apprenant.
-                </p>
+                <label className="text-sm font-medium text-slate-700">
+                  Prénom
+                </label>
+                <input
+                  name="firstName"
+                  required
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
               </div>
-            </div>
 
-            <form action={ajouterApprenant} className="mt-6 space-y-4">
-              <input
-                name="matricule"
-                required
-                placeholder="Matricule"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-              />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Nom
+                </label>
+                <input
+                  name="lastName"
+                  required
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </div>
 
-              <input
-                name="firstName"
-                required
-                placeholder="Prénom"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-              />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Téléphone
+                </label>
+                <input
+                  name="phone"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </div>
 
-              <input
-                name="lastName"
-                required
-                placeholder="Nom"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-              />
-
-              <input
-                name="phone"
-                placeholder="Téléphone"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-              />
-
-              <input
-                name="email"
-                type="email"
-                placeholder="Email"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-              />
+              <div>
+                <label className="text-sm font-medium text-slate-700">
+                  Email
+                </label>
+                <input
+                  name="email"
+                  type="email"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </div>
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-800"
+                className="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white hover:bg-slate-800"
               >
                 Ajouter l'apprenant
               </button>
@@ -242,79 +191,63 @@ export default async function FormationsAdminPage() {
           </section>
         </div>
 
-        {/* INSCRIPTION */}
-        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-bold text-slate-950">
-            Inscrire un apprenant à une formation
+        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900">
+            Inscrire un apprenant
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Sélectionner l'apprenant et la formation.
-          </p>
-
           <form
-            action={inscrireApprenant}
-            className="mt-6 grid gap-4 md:grid-cols-3"
+            action="/api/formations/admin"
+            method="POST"
+            className="mt-6 grid gap-4 md:grid-cols-2"
           >
-            <select
-              name="learnerId"
-              required
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Choisir un apprenant
-              </option>
+            <input type="hidden" name="action" value="inscription" />
 
-              {apprenants.map((apprenant) => (
-                <option key={apprenant.id} value={apprenant.id}>
-                  {apprenant.matricule} — {apprenant.firstName}{" "}
-                  {apprenant.lastName}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Apprenant
+              </label>
+              <select
+                name="learnerId"
+                required
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              >
+                <option value="">Sélectionner un apprenant</option>
+                {learners.map((learner) => (
+                  <option key={learner.id} value={learner.id}>
+                    {learner.matricule} — {learner.firstName}{" "}
+                    {learner.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              name="trainingId"
-              required
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Choisir une formation
-              </option>
-
-              {formations.map((formation) => (
-                <option key={formation.id} value={formation.id}>
-                  {formation.code} — {formation.title}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                Formation
+              </label>
+              <select
+                name="trainingId"
+                required
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              >
+                <option value="">Sélectionner une formation</option>
+                {formations.map((formation) => (
+                  <option key={formation.id} value={formation.id}>
+                    {formation.code} — {formation.title}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="submit"
-              className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white hover:bg-slate-800"
+              className="md:col-span-2 rounded-lg bg-slate-900 px-4 py-2.5 font-semibold text-white hover:bg-slate-800"
             >
-              Enregistrer l'inscription
+              Inscrire l'apprenant
             </button>
           </form>
         </section>
-
-        <div className="mt-6 flex gap-3">
-          <Link
-            href="/formations"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
-          >
-            Voir les formations
-          </Link>
-
-          <Link
-            href="/dashboard"
-            className="rounded-xl bg-sky-700 px-4 py-3 text-sm font-semibold text-white"
-          >
-            Tableau de bord
-          </Link>
-        </div>
       </div>
     </main>
   );
