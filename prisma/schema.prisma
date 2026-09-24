@@ -39,12 +39,12 @@ enum AssetStatus {
 }
 
 model Role {
-  id          String       @id @default(cuid())
-  name        String       @unique
+  id          String   @id @default(cuid())
+  name        String   @unique
   description String?
   users       User[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {
@@ -58,97 +58,100 @@ model User {
   roleId String
   role   Role   @relation(fields: [roleId], references: [id])
 
-  agent      Agent?
-  auditLogs  AuditLog[]
-  documents  Document[] @relation("DocumentAuthor")
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  agent     Agent?
+  auditLogs AuditLog[]
+  documents Document[] @relation("DocumentAuthor")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model Service {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   description String?
 
-  agents Agent[]
-  assets Asset[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  agents            Agent[]
+  assets            Asset[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  securityIncidents SecurityIncident[]
 }
 
 model Agent {
-  id             String    @id @default(cuid())
-  matricule      String    @unique
-  firstName      String
-  lastName       String
-  position       String?
-  contractType   String?
-  phone          String?
-  email          String?
-  hireDate       DateTime?
-  serviceId      String?
-  service        Service?  @relation(fields: [serviceId], references: [id])
+  id           String    @id @default(cuid())
+  matricule    String    @unique
+  firstName    String
+  lastName     String
+  position     String?
+  contractType String?
+  phone        String?
+  email        String?
+  hireDate     DateTime?
+  serviceId    String?
+  service      Service?  @relation(fields: [serviceId], references: [id])
 
-  userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId            String?            @unique
+  user              User?              @relation(fields: [userId], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  securityIncidents SecurityIncident[]
 }
 
 model Training {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id          String  @id @default(cuid())
+  code        String  @unique
   title       String
   category    String?
   level       String?
   duration    String?
   description String?
-  active      Boolean  @default(true)
+  active      Boolean @default(true)
 
   enrollments Enrollment[]
+  insertions  Insertion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Learner {
-  id          String       @id @default(cuid())
-  matricule   String       @unique
-  firstName   String
-  lastName    String
-  phone       String?
-  email       String?
+  id              String    @id @default(cuid())
+  matricule       String    @unique
+  firstName       String
+  lastName        String
+  birthDate       DateTime?
+  integrationYear Int?
+  phone           String?
+  email           String?
 
   enrollments Enrollment[]
+  insertions  Insertion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Enrollment {
-  id         String   @id @default(cuid())
-  learnerId  String
-  trainingId String
-  startDate  DateTime?
-  endDate    DateTime?
-  status     String?
+  id           String    @id @default(cuid())
+  learnerId    String
+  trainingId   String
+  startDate    DateTime?
+  endDate      DateTime?
+  academicYear String    @default("NON_RENSEIGNEE")
+  level        String?
+  status       String?
 
   learner  Learner  @relation(fields: [learnerId], references: [id])
   training Training @relation(fields: [trainingId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([learnerId, trainingId])
+  @@unique([learnerId, trainingId, academicYear])
 }
 
 model Budget {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   year        Int
   title       String
-  amount      Decimal  @db.Decimal(15, 2)
+  amount      Decimal @db.Decimal(15, 2)
   description String?
 
   lines BudgetLine[]
@@ -158,15 +161,15 @@ model Budget {
 }
 
 model BudgetLine {
-  id          String   @id @default(cuid())
-  budgetId    String
-  code        String
-  label       String
-  allocated   Decimal  @db.Decimal(15, 2)
-  committed   Decimal  @default(0) @db.Decimal(15, 2)
-  spent       Decimal  @default(0) @db.Decimal(15, 2)
+  id        String  @id @default(cuid())
+  budgetId  String
+  code      String
+  label     String
+  allocated Decimal @db.Decimal(15, 2)
+  committed Decimal @default(0) @db.Decimal(15, 2)
+  spent     Decimal @default(0) @db.Decimal(15, 2)
 
-  budget Budget @relation(fields: [budgetId], references: [id])
+  budget     Budget               @relation(fields: [budgetId], references: [id])
   operations FinancialOperation[]
 
   createdAt DateTime @default(now())
@@ -174,12 +177,12 @@ model BudgetLine {
 }
 
 model Supplier {
-  id          String   @id @default(cuid())
-  name        String
-  identifier  String?
-  phone       String?
-  email       String?
-  address     String?
+  id         String  @id @default(cuid())
+  name       String
+  identifier String?
+  phone      String?
+  email      String?
+  address    String?
 
   operations FinancialOperation[]
 
@@ -188,14 +191,14 @@ model Supplier {
 }
 
 model FinancialOperation {
-  id            String        @id @default(cuid())
-  reference     String        @unique
-  type          OperationType
-  date          DateTime
-  description   String
-  amount        Decimal       @db.Decimal(15, 2)
-  budgetLineId  String?
-  supplierId    String?
+  id           String        @id @default(cuid())
+  reference    String        @unique
+  type         OperationType
+  date         DateTime
+  description  String
+  amount       Decimal       @db.Decimal(15, 2)
+  budgetLineId String?
+  supplierId   String?
 
   budgetLine BudgetLine? @relation(fields: [budgetLineId], references: [id])
   supplier   Supplier?   @relation(fields: [supplierId], references: [id])
@@ -205,22 +208,22 @@ model FinancialOperation {
 }
 
 model AssetCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   description String?
 
   assets Asset[]
 }
 
 model Asset {
-  id             String      @id @default(cuid())
-  inventoryCode  String      @unique
-  name           String
-  description    String?
-  acquisitionDate DateTime?
-  acquisitionValue Decimal?  @db.Decimal(15, 2)
-  location       String?
-  status         AssetStatus @default(ACTIF)
+  id               String      @id @default(cuid())
+  inventoryCode    String      @unique
+  name             String
+  description      String?
+  acquisitionDate  DateTime?
+  acquisitionValue Decimal?    @db.Decimal(15, 2)
+  location         String?
+  status           AssetStatus @default(ACTIF)
 
   categoryId String?
   category   AssetCategory? @relation(fields: [categoryId], references: [id])
@@ -228,10 +231,10 @@ model Asset {
   serviceId String?
   service   Service? @relation(fields: [serviceId], references: [id])
 
-  maintenances Maintenance[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  maintenances      Maintenance[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  securityIncidents SecurityIncident[]
 }
 
 model Maintenance {
@@ -250,13 +253,13 @@ model Maintenance {
 }
 
 model Document {
-  id          String         @id @default(cuid())
-  title       String
-  fileName    String
-  storageKey  String
-  mimeType    String?
-  size        Int?
-  status      DocumentStatus @default(BROUILLON)
+  id         String         @id @default(cuid())
+  title      String
+  fileName   String
+  storageKey String
+  mimeType   String?
+  size       Int?
+  status     DocumentStatus @default(BROUILLON)
 
   authorId String
   author   User   @relation("DocumentAuthor", fields: [authorId], references: [id])
@@ -266,17 +269,17 @@ model Document {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  read      Boolean  @default(false)
+  id      String  @id @default(cuid())
+  userId  String
+  title   String
+  message String
+  read    Boolean @default(false)
 
   createdAt DateTime @default(now())
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   userId    String?
   action    String
   entity    String
@@ -290,10 +293,10 @@ model AuditLog {
 }
 
 model PSDAxis {
-  id        String   @id @default(cuid())
-  code      String   @unique
-  title     String
-  purpose   String
+  id      String @id @default(cuid())
+  code    String @unique
+  title   String
+  purpose String
 
   objectives PSDObjective[]
   actions    PSDAction[]
@@ -303,11 +306,11 @@ model PSDAxis {
 }
 
 model PSDObjective {
-  id       String   @id @default(cuid())
-  axisId   String
-  title    String
-  axis     PSDAxis  @relation(fields: [axisId], references: [id])
-  actions  PSDAction[]
+  id      String      @id @default(cuid())
+  axisId  String
+  title   String
+  axis    PSDAxis     @relation(fields: [axisId], references: [id])
+  actions PSDAction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -333,4 +336,76 @@ model PSDAction {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SecurityIncident {
+  id          String   @id @default(cuid())
+  reference   String   @unique
+  date        DateTime @default(now())
+  location    String?
+  type        String
+  severity    String?
+  description String
+  actions     String?
+  status      String   @default("OUVERT")
+
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id])
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+
+  assetId String?
+  asset   Asset?  @relation(fields: [assetId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  type        String?
+  contact     String?
+  phone       String?
+  email       String?
+  address     String?
+  description String?
+  status      String   @default("ACTIF")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum InsertionStatus {
+  EN_RECHERCHE
+  STAGE
+  EMPLOI
+  AUTO_EMPLOI
+  ENTREPRENEUR
+  SANS_EMPLOI
+}
+
+model Insertion {
+  id           String          @id @default(cuid())
+  learnerId    String
+  year         Int
+  status       InsertionStatus @default(EN_RECHERCHE)
+  structure    String?
+  position     String?
+  contractType String?
+  startDate    DateTime?
+  endDate      DateTime?
+  salary       Decimal?        @db.Decimal(15, 2)
+  notes        String?
+
+  learner Learner @relation(fields: [learnerId], references: [id])
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  training   Training? @relation(fields: [trainingId], references: [id])
+  trainingId String?
+
+  @@index([learnerId])
+  @@index([year])
+  @@index([status])
 }
