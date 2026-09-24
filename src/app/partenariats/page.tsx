@@ -1,0 +1,10 @@
+export default function Page() {
+  return (
+    <div className="min-h-screen p-6">
+      <h1 className="text-3xl font-bold">Partenariats</h1>
+      <p className="mt-2 text-slate-500">
+        Module Partenariats du système numérique du CFP Sédhiou.
+      </p>
+    </div>
+  )
+}
