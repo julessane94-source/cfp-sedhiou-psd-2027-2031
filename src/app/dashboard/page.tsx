@@ -1,6 +1,20 @@
+import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const roleLabels: Record<string, string> = {
+  DIRECTEUR: "Directeur",
+  GESTIONNAIRE: "Gestionnaire",
+  COMPTABLE_MATIERES: "Comptable matières",
+  CHEF_TRAVAUX: "Chef des travaux",
+  SURVEILLANT: "Surveillant",
+  FORMATEUR: "Formateur",
+};
+
 export default async function DashboardPage() {
+  const session = await getSession();
+  const role = session?.role ?? "DIRECTEUR";
+  const roleLabel = roleLabels[role] ?? role;
+
   const [
     agents,
     learners,
@@ -23,16 +37,33 @@ export default async function DashboardPage() {
     prisma.notification.count({ where: { read: false } }),
   ]);
 
-  const stats = [
+  const allStats = [
     { title: "Personnel", value: agents, icon: "👥", href: "/personnel" },
     { title: "Apprenants", value: learners, icon: "🎓", href: "/apprenants" },
     { title: "Formations", value: trainings, icon: "📚", href: "/formations" },
     { title: "Patrimoine", value: assets, icon: "🏢", href: "/infrastructures" },
     { title: "Budgets", value: budgets, icon: "💰", href: "/finances" },
-    { title: "Opérations", value: operations, icon: "📊", href: "/finances" },
+    { title: "Opérations", value: operations, icon: "💳", href: "/finances" },
     { title: "Sécurité", value: incidents, icon: "🛡️", href: "/securite" },
     { title: "Documents", value: documents, icon: "📄", href: "/documents" },
   ];
+
+  const roleStats: Record<string, typeof allStats> = {
+    DIRECTEUR: allStats,
+    GESTIONNAIRE: [
+      allStats[0],
+      allStats[1],
+      allStats[4],
+      allStats[5],
+      allStats[7],
+    ],
+    COMPTABLE_MATIERES: [allStats[3], allStats[4]],
+    CHEF_TRAVAUX: [allStats[1], allStats[2], allStats[7]],
+    SURVEILLANT: [allStats[1], allStats[6]],
+    FORMATEUR: [allStats[1], allStats[2]],
+  };
+
+  const stats = roleStats[role] ?? allStats;
 
   return (
     <main className="ui-page">
@@ -41,13 +72,13 @@ export default async function DashboardPage() {
           <span className="dashboard-kicker">CFP SÉDHIOU</span>
           <h1>Tableau de bord</h1>
           <p>
-            Vue globale de la plateforme administrative et financière.
+            Vue de gestion adaptée à votre fonction : <strong>{roleLabel}</strong>.
           </p>
         </div>
 
         <div className="notification-badge">
           🔔 <strong>{notifications}</strong>
-          <span>notification{notifications > 1 ? "s" : ""}</span>
+          <span>{notifications > 1 ? "notifications" : "notification"}</span>
         </div>
       </section>
 
@@ -64,7 +95,6 @@ export default async function DashboardPage() {
               <span>{title}</span>
               <strong>{value}</strong>
             </div>
-            <b>→</b>
           </a>
         ))}
       </section>
@@ -72,18 +102,57 @@ export default async function DashboardPage() {
       <section className="dashboard-bottom animate-rise">
         <div className="ui-card">
           <h2>Accès rapides</h2>
+
           <div className="quick-actions">
-            <a href="/personnel">+ Personnel</a>
-            <a href="/finances">+ Opération financière</a>
-            <a href="/infrastructures">+ Patrimoine</a>
-            <a href="/securite">+ Incident</a>
+            {role === "DIRECTEUR" && (
+              <>
+                <a href="/personnel">👥 Personnel</a>
+                <a href="/finances">💰 Finances</a>
+                <a href="/infrastructures">🏢 Patrimoine</a>
+                <a href="/securite">🛡️ Sécurité</a>
+              </>
+            )}
+
+            {role === "GESTIONNAIRE" && (
+              <>
+                <a href="/personnel">👥 Personnel</a>
+                <a href="/finances">💰 Finances</a>
+                <a href="/documents">📄 Documents</a>
+              </>
+            )}
+
+            {role === "COMPTABLE_MATIERES" && (
+              <a href="/infrastructures">🏢 Patrimoine</a>
+            )}
+
+            {role === "CHEF_TRAVAUX" && (
+              <>
+                <a href="/apprenants">🎓 Apprenants</a>
+                <a href="/formations">📚 Formations</a>
+                <a href="/stages">🏢 Stages</a>
+              </>
+            )}
+
+            {role === "SURVEILLANT" && (
+              <a href="/apprenants">🎓 Apprenants</a>
+            )}
+
+            {role === "FORMATEUR" && (
+              <>
+                <a href="/apprenants">🎓 Apprenants</a>
+                <a href="/formations">📚 Formations</a>
+              </>
+            )}
           </div>
         </div>
 
         <div className="ui-card dashboard-info">
           <span>État de la plateforme</span>
-          <strong>● Système opérationnel</strong>
-          <p>Données synchronisées avec la base centrale.</p>
+          <strong>Système opérationnel</strong>
+          <p>
+            Données synchronisées avec la base centrale.
+          </p>
+          <small>Session : {roleLabel}</small>
         </div>
       </section>
     </main>
