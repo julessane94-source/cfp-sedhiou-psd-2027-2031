@@ -58,7 +58,10 @@ export default async function DashboardPage() {
       allStats[5],
       allStats[7],
     ],
-    COMPTABLE_MATIERES: [allStats[3], allStats[4]],
+    COMPTABLE_MATIERES: [
+      allStats[3],
+      allStats[4],
+    ],
     CHEF_TRAVAUX: [allStats[1], allStats[2], allStats[7]],
     SURVEILLANT: [allStats[1], allStats[6]],
     FORMATEUR: [allStats[1], allStats[2]],
@@ -130,7 +133,11 @@ export default async function DashboardPage() {
             )}
 
             {role === "COMPTABLE_MATIERES" && (
-              <a href="/infrastructures">🏢 Patrimoine</a>
+              <>
+                <a href="/infrastructures">🏢 Patrimoine</a>
+                <a href="/finances">💰 Consultation finances</a>
+                <a href="/documents">📄 Documents</a>
+              </>
             )}
 
             {role === "CHEF_TRAVAUX" && (
