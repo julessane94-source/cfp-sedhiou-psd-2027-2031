@@ -53,6 +53,7 @@ export default async function DashboardPage() {
     GESTIONNAIRE: [
       allStats[0],
       allStats[1],
+      allStats[2],
       allStats[4],
       allStats[5],
       allStats[7],
@@ -115,8 +116,15 @@ export default async function DashboardPage() {
 
             {role === "GESTIONNAIRE" && (
               <>
+                <a href="/apprenants">🎓 Apprenants</a>
+                <a href="/formations">📚 Formations</a>
                 <a href="/personnel">👥 Personnel</a>
                 <a href="/finances">💰 Finances</a>
+                <a href="/stages">🏢 Stages</a>
+                <a href="/insertion">🎯 Insertion</a>
+                <a href="/entrepreneuriat">🚀 Entrepreneuriat</a>
+                <a href="/partenaires">🤝 Partenaires</a>
+                <a href="/communication">📢 Communication</a>
                 <a href="/documents">📄 Documents</a>
               </>
             )}
