@@ -70,7 +70,10 @@ export default async function DashboardPage() {
       allStats[1],
       allStats[6],
     ],
-    FORMATEUR: [allStats[1], allStats[2]],
+    FORMATEUR: [
+      allStats[1],
+      allStats[2],
+    ],
   };
 
   const stats = roleStats[role] ?? allStats;
@@ -171,6 +174,8 @@ export default async function DashboardPage() {
               <>
                 <a href="/apprenants">🎓 Apprenants</a>
                 <a href="/formations">📚 Formations</a>
+                <a href="/stages">🏢 Stages</a>
+                <a href="/documents">📄 Documents</a>
               </>
             )}
           </div>
