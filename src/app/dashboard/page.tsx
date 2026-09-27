@@ -66,7 +66,10 @@ export default async function DashboardPage() {
       allStats[1],
       allStats[2],
     ],
-    SURVEILLANT: [allStats[1], allStats[6]],
+    SURVEILLANT: [
+      allStats[1],
+      allStats[6],
+    ],
     FORMATEUR: [allStats[1], allStats[2]],
   };
 
@@ -156,7 +159,12 @@ export default async function DashboardPage() {
             )}
 
             {role === "SURVEILLANT" && (
-              <a href="/apprenants">🎓 Apprenants</a>
+              <>
+                <a href="/apprenants">🎓 Apprenants</a>
+                <a href="/securite">🛡️ Sécurité</a>
+                <a href="/stages">🏢 Stages</a>
+                <a href="/documents">📄 Documents</a>
+              </>
             )}
 
             {role === "FORMATEUR" && (
