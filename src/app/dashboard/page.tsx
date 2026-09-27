@@ -62,7 +62,10 @@ export default async function DashboardPage() {
       allStats[3],
       allStats[4],
     ],
-    CHEF_TRAVAUX: [allStats[1], allStats[2], allStats[7]],
+    CHEF_TRAVAUX: [
+      allStats[1],
+      allStats[2],
+    ],
     SURVEILLANT: [allStats[1], allStats[6]],
     FORMATEUR: [allStats[1], allStats[2]],
   };
@@ -145,6 +148,10 @@ export default async function DashboardPage() {
                 <a href="/apprenants">🎓 Apprenants</a>
                 <a href="/formations">📚 Formations</a>
                 <a href="/stages">🏢 Stages</a>
+                <a href="/insertion">🎯 Insertion</a>
+                <a href="/entrepreneuriat">🚀 Entrepreneuriat</a>
+                <a href="/partenaires">🤝 Partenaires</a>
+                <a href="/documents">📄 Documents</a>
               </>
             )}
 
