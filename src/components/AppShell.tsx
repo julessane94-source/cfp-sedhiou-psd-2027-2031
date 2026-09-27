@@ -1,77 +1,66 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
+"use client";
 
-const modules = [
-  ["Dashboard", "/dashboard", "⌂"],
-  ["Apprenants", "/apprenants", "🎓"],
-  ["Candidatures", "/candidature", "📋"],
-  ["Formations", "/formations", "📚"],
-  ["Personnel", "/personnel", "👥"],
-  ["Finances", "/finances", "💰"],
-  ["Infrastructures", "/infrastructures", "🏢"],
-  ["Sécurité", "/securite", "🛡"],
-  ["Insertion", "/insertion", "🚀"],
-  ["Stages", "/stages", "💼"],
-  ["Entrepreneuriat", "/entrepreneuriat", "📈"],
-  ["Partenaires", "/partenaires", "🤝"],
-  ["Communication", "/communication", "💬"],
-  ["Documents", "/documents", "📄"],
-  ["Notifications", "/notifications", "🔔"],
-];
+import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import Sidebar from "./layout/Sidebar";
+import ScrollReveal from "./ScrollReveal";
 
 export default function AppShell({ children }: { children: ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/" || pathname === "/connexion";
+
+  if (isLoginPage) {
+    return (
+      <div className="login-shell">
+        <main className="app-content">
+          <ScrollReveal>{children}</ScrollReveal>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-logo">CFP</div>
-          <div>
-            <strong>CFP Sédhiou</strong>
-            <span>PSD 2027–2031</span>
-          </div>
-        </div>
+    <div className={`app-shell ${isLoginPage ? "login-shell" : ""}`}>
+      <Sidebar
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
 
-        <nav className="sidebar-nav">
-          {modules.map(([label, href, icon]) => (
-            <Link key={href} href={href} className="nav-link">
-              <span className="nav-icon">{icon}</span>
-              <span>{label}</span>
-            </Link>
-          ))}
-        </nav>
+      <div
+        className={`sidebar-overlay ${menuOpen ? "is-visible" : ""}`}
+        onClick={() => setMenuOpen(false)}
+      />
 
-        <div className="sidebar-footer">
-          <span className="status-dot" />
-          Système opérationnel
-        </div>
-      </aside>
-
-      <main className="app-content">
-        <header className="topbar">
-          <div className="topbar-title">
-            <strong>Plateforme de gestion</strong>
-            <span>Administration · CFP Sédhiou</span>
-          </div>
-
-          <details className="mobile-menu">
-            <summary>
-              <span>☰</span>
-              Menu
-            </summary>
-
-            <div className="mobile-menu-panel">
-              {modules.map(([label, href, icon]) => (
-                <Link key={href} href={href} className="mobile-nav-link">
-                  <span>{icon}</span>
-                  {label}
-                </Link>
-              ))}
+      <div className="app-main">
+        <header className="mobile-header">
+          <div className="mobile-brand">
+            <img
+              src="/logo-cfp-sedhiou.svg"
+              alt="Logo CFP Sédhiou"
+              className="mobile-logo"
+            />
+            <div>
+              <strong>CFP Sédhiou</strong>
+              <span>Plateforme de gestion</span>
             </div>
-          </details>
+          </div>
+
+          <button
+            type="button"
+            className={`mobile-menu-button ${menuOpen ? "is-open" : ""}`}
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={menuOpen}
+          >
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+          </button>
         </header>
 
-        <div className="page-content">{children}</div>
-      </main>
+        <main className="app-content"><ScrollReveal>{children}</ScrollReveal></main>
+      </div>
     </div>
   );
 }
