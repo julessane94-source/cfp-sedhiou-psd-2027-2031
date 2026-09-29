@@ -1,0 +1,109 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+
+type SidebarProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
+const groups = [
+  {
+    title: "Accueil",
+    items: [
+      ["Tableau de bord", "/dashboard", "📊"],
+    ],
+  },
+  {
+    title: "Formation & insertion",
+    items: [
+      ["Apprenants", "/apprenants", "🎓"],
+      ["Candidatures", "/candidature", "📝"],
+      ["Formations", "/formations", "📚"],
+      ["Stages", "/stages", "🏢"],
+      ["Insertion", "/insertion", "🎯"],
+      ["Entrepreneuriat", "/entrepreneuriat", "🚀"],
+    ],
+  },
+  {
+    title: "Administration",
+    items: [
+      ["Personnel", "/personnel", "👥"],
+      ["Partenaires", "/partenaires", "🤝"],
+      ["Communication", "/communication", "📢"],
+      ["Documents", "/documents", "📄"],
+      ["Notifications", "/notifications", "🔔"],
+    ],
+  },
+  {
+    title: "Gestion & contrôle",
+    items: [
+      ["Finances", "/finances", "💰"],
+      ["Patrimoine", "/infrastructures", "🏢"],
+      ["Sécurité", "/securite", "🛡️"],
+    ],
+  },
+];
+
+export default function Sidebar({ open, onClose }: SidebarProps) {
+  return (
+    <>
+      <div
+        className={`sidebar-overlay ${open ? "is-visible" : ""}`}
+        onClick={onClose}
+      />
+
+      <aside className={`sidebar ${open ? "is-open" : ""}`}>
+        <div className="sidebar-brand">
+          <div className="brand-logo"><Image src="/logo-cfp-sedhiou.svg" alt="Logo CFP Sédhiou" width={58} height={58} priority /></div>
+
+          <div className="brand-text">
+            <strong>CFP Sédhiou</strong>
+            <span>Plateforme de gestion</span>
+          </div>
+
+          <button
+            type="button"
+            className="sidebar-close"
+            onClick={onClose}
+            aria-label="Fermer le menu"
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="sidebar-nav">
+          {groups.map((group) => (
+            <div className="nav-group" key={group.title}>
+              <div className="nav-group-title">{group.title}</div>
+
+              {group.items.map(([label, href, icon]) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="nav-link"
+                  onClick={onClose}
+                >
+                  <span className="nav-icon">{icon}</span>
+                  <span>{label}</span>
+                  <span className="nav-arrow">›</span>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="footer-status">
+            <span className="status-dot" />
+            <div>
+              <strong>Système opérationnel</strong>
+              <small>Données synchronisées</small>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
+  );
+}

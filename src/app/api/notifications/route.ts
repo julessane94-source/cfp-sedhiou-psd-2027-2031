@@ -1,42 +1,67 @@
-import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
-  const formData = await request.formData();
-  const action = String(formData.get("action") || "");
+  try {
+    const formData = await request.formData();
 
-  if (action === "create") {
-    const userId = String(formData.get("userId") || "");
     const title = String(formData.get("title") || "");
     const message = String(formData.get("message") || "");
 
-    if (!userId || !title || !message) {
-      return NextResponse.redirect(new URL("/notifications", request.url));
+    if (!title || !message) {
+      return NextResponse.json(
+        { error: "Le titre et le message sont obligatoires." },
+        { status: 400 }
+      );
+    }
+
+    const user = await prisma.user.findFirst({
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Aucun utilisateur disponible." },
+        { status: 400 }
+      );
     }
 
     await prisma.notification.create({
       data: {
-        userId,
+        userId: user.id,
         title,
         message,
+        read: false,
       },
     });
+
+    return NextResponse.redirect(
+      new URL("/notifications", request.url)
+    );
+  } catch {
+    return NextResponse.json(
+      { error: "Impossible de créer la notification." },
+      { status: 500 }
+    );
   }
+}
 
-  if (action === "read") {
-    const id = String(formData.get("id") || "");
+export async function PATCH(request: Request) {
+  try {
+    const { id, read } = await request.json();
 
-    if (id) {
-      await prisma.notification.update({
-        where: { id },
-        data: { read: true },
-      });
-    }
+    const notification = await prisma.notification.update({
+      where: { id },
+      data: {
+        read: Boolean(read),
+      },
+    });
+
+    return NextResponse.json(notification);
+  } catch {
+    return NextResponse.json(
+      { error: "Impossible de modifier la notification." },
+      { status: 500 }
+    );
   }
-
-  revalidatePath("/notifications");
-  revalidatePath("/dashboard");
-
-  return NextResponse.redirect(new URL("/notifications", request.url));
 }

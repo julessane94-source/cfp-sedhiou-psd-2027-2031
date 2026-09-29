@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { OperationType } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  if (!(await hasPermission("finances.gerer"))) {
+    return NextResponse.json(
+      { error: "Accès refusé." },
+      { status: 403 }
+    );
+  }
+
   try {
     const formData = await request.formData();
     const action = String(formData.get("action") ?? "");

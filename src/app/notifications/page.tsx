@@ -1,99 +1,145 @@
 import { prisma } from "@/lib/prisma";
+import NotificationActions from "@/components/NotificationActions";
 
 export default async function NotificationsPage() {
   const notifications = await prisma.notification.findMany({
     orderBy: { createdAt: "desc" },
   });
 
-  const users = await prisma.user.findMany({
-    orderBy: { firstName: "asc" },
-  });
+  const total = notifications.length;
+  const nonLues = notifications.filter((n) => !n.read).length;
+  const lues = notifications.filter((n) => n.read).length;
 
   return (
-    <main className="min-h-screen p-6">
-      <h1 className="text-3xl font-bold">Notifications</h1>
-      <p className="mt-2 text-slate-500">
-        Gestion des notifications du système.
-      </p>
+    <main className="ui-page">
+      <section className="dashboard-hero animate-rise">
+        <div>
+          <span className="dashboard-kicker">CFP SÉDHIOU</span>
+          <h1>Notifications</h1>
+          <p>
+            Centre de suivi des notifications et informations
+            importantes de la plateforme.
+          </p>
+        </div>
+      </section>
 
-      <section className="mt-8 rounded-xl bg-white p-5 shadow">
-        <h2 className="text-xl font-semibold">Nouvelle notification</h2>
+      <section className="dashboard-grid">
+        <div className="dashboard-stat">
+          <div className="stat-icon">🔔</div>
+          <div>
+            <span>Total</span>
+            <strong>{total}</strong>
+          </div>
+        </div>
 
-        <form action="/api/notifications" method="post" className="mt-4 grid gap-3">
-          <input type="hidden" name="action" value="create" />
+        <div className="dashboard-stat">
+          <div className="stat-icon">🔴</div>
+          <div>
+            <span>Non lues</span>
+            <strong>{nonLues}</strong>
+          </div>
+        </div>
 
-          <select name="userId" required className="rounded border p-2">
-            <option value="">Utilisateur destinataire</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.firstName} {user.lastName}
-              </option>
-            ))}
-          </select>
+        <div className="dashboard-stat">
+          <div className="stat-icon">✅</div>
+          <div>
+            <span>Lues</span>
+            <strong>{lues}</strong>
+          </div>
+        </div>
+      </section>
 
-          <input
-            name="title"
-            required
-            placeholder="Titre"
-            className="rounded border p-2"
-          />
+      <section className="ui-card">
+        <h2>Nouvelle notification</h2>
 
-          <textarea
-            name="message"
-            required
-            placeholder="Message"
-            className="rounded border p-2"
-          />
+        <form
+          action="/api/notifications"
+          method="POST"
+          className="ui-form"
+        >
+          <label>
+            Titre
+            <input
+              name="title"
+              required
+              placeholder="Titre de la notification"
+            />
+          </label>
 
-          <button className="rounded bg-slate-800 px-4 py-2 text-white">
-            Envoyer
+          <label className="full-width">
+            Message
+            <textarea
+              name="message"
+              rows={4}
+              required
+              placeholder="Message à transmettre..."
+            />
+          </label>
+
+          <button type="submit">
+            Envoyer la notification
           </button>
         </form>
       </section>
 
-      <section className="mt-8 rounded-xl bg-white p-5 shadow">
-        <h2 className="text-xl font-semibold">
-          Notifications ({notifications.length})
-        </h2>
+      <section className="ui-card">
+        <h2>Centre de notifications</h2>
 
-        <div className="mt-4 space-y-3">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className="rounded-lg border p-4"
-            >
-              <div className="flex items-center justify-between">
-                <strong>{notification.title}</strong>
+        <div className="table-wrap">
+          <table className="ui-table">
+            <thead>
+              <tr>
+                <th>Notification</th>
+                <th>Date</th>
+                <th>État</th>
+                <th>Action</th>
+              </tr>
+            </thead>
 
-                {!notification.read ? (
-                  <form action="/api/notifications" method="post">
-                    <input type="hidden" name="action" value="read" />
-                    <input
-                      type="hidden"
-                      name="id"
-                      value={notification.id}
+            <tbody>
+              {notifications.map((notification) => (
+                <tr key={notification.id}>
+                  <td>
+                    <strong>{notification.title}</strong>
+                    <small>{notification.message}</small>
+                  </td>
+
+                  <td>
+                    {new Date(
+                      notification.createdAt
+                    ).toLocaleString("fr-FR")}
+                  </td>
+
+                  <td>
+                    <span
+                      className={`badge ${
+                        notification.read
+                          ? "badge-lu"
+                          : "badge-non_lu"
+                      }`}
+                    >
+                      {notification.read ? "Lue" : "Non lue"}
+                    </span>
+                  </td>
+
+                  <td>
+                    <NotificationActions
+                      id={notification.id}
+                      read={notification.read}
                     />
-                    <button className="rounded bg-slate-800 px-3 py-1 text-sm text-white">
-                      Marquer comme lue
-                    </button>
-                  </form>
-                ) : (
-                  <span className="text-sm text-slate-500">Lue</span>
-                )}
-              </div>
+                  </td>
+                </tr>
+              ))}
 
-              <p className="mt-2">{notification.message}</p>
-              <p className="mt-2 text-xs text-slate-500">
-                {notification.createdAt.toLocaleString("fr-FR")}
-              </p>
-            </div>
-          ))}
-
-          {notifications.length === 0 && (
-            <p className="text-slate-500">
-              Aucune notification enregistrée.
-            </p>
-          )}
+              {notifications.length === 0 && (
+                <tr>
+                  <td colSpan={4}>
+                    Aucune notification.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </main>

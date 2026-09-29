@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+  <circle cx="250" cy="250" r="225" fill="#fff" stroke="#7a1f1f" stroke-width="12"/>
+
+  <!-- livres -->
+  <path d="M120 155 L205 170 L225 245 L140 230 Z" fill="#8b2a1f"/>
+  <path d="M205 115 L310 135 L285 235 L185 215 Z" fill="#7a1f1f"/>
+  <path d="M300 140 L380 125 L365 225 L285 235 Z" fill="#9b3525"/>
+
+  <!-- symbole central -->
+  <path d="M245 125 L275 125 L275 205 L245 205 Z" fill="#c9a227"/>
+  <path d="M220 205 L300 205 L300 225 L220 225 Z" fill="#c9a227"/>
+
+  <!-- texte -->
+  <text x="250" y="285"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="27"
+        font-weight="700"
+        fill="#7a1f1f">
+    FORMATION
+  </text>
+
+  <text x="250" y="320"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="25"
+        font-weight="700"
+        fill="#7a1f1f">
+    INSERTION
+  </text>
+
+  <text x="250" y="355"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="22"
+        font-weight="700"
+        fill="#7a1f1f">
+    PROFESSIONNELLE
+  </text>
+
+  <text x="250" y="425"
+        text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="45"
+        font-weight="800"
+        letter-spacing="3"
+        fill="#7a1f1f">
+    CFP SEDHIOU
+  </text>
+</svg>

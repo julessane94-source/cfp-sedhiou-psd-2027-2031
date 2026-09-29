@@ -1,0 +1,558 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       User[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  status          UserStatus       @default(ACTIVE)
+  roleId          String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  agent           Agent?
+  auditLogs       AuditLog[]
+  communications  Communication[]
+  documents       Document[]       @relation("DocumentAuthor")
+  role            Role             @relation(fields: [roleId], references: [id])
+  learnerPayments LearnerPayment[]
+}
+
+model Service {
+  id                String             @id @default(cuid())
+  name              String             @unique
+  description       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  agents            Agent[]
+  assets            Asset[]
+  securityIncidents SecurityIncident[]
+}
+
+model Agent {
+  id                String             @id @default(cuid())
+  matricule         String             @unique
+  firstName         String
+  lastName          String
+  position          String?
+  contractType      String?
+  phone             String?
+  email             String?
+  hireDate          DateTime?
+  serviceId         String?
+  userId            String?            @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  service           Service?           @relation(fields: [serviceId], references: [id])
+  user              User?              @relation(fields: [userId], references: [id])
+  securityIncidents SecurityIncident[]
+}
+
+model Training {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  title       String
+  category    String?
+  level       String?
+  duration    String?
+  description String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  enrollments Enrollment[]
+  insertions  Insertion[]
+}
+
+model Learner {
+  id                       String                    @id @default(cuid())
+  matricule                String                    @unique
+  firstName                String
+  lastName                 String
+  phone                    String?
+  email                    String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  birthDate                DateTime?
+  integrationYear          Int?
+  enrollments              Enrollment[]
+  entrepreneurshipProjects EntrepreneurshipProject[]
+  insertions               Insertion[]
+  stages                   Stage[]
+  payments                 LearnerPayment[]
+}
+
+model Enrollment {
+  id                  String           @id @default(cuid())
+  learnerId           String
+  trainingId          String
+  startDate           DateTime?
+  endDate             DateTime?
+  status              String?
+  academicYear        String           @default("NON_RENSEIGNEE")
+  level               String?
+  learner             Learner          @relation(fields: [learnerId], references: [id])
+  training            Training         @relation(fields: [trainingId], references: [id])
+  registrationFee     Decimal          @default(0) @db.Decimal(15, 2)
+  trainingCost        Decimal          @default(0) @db.Decimal(15, 2)
+  discount            Decimal          @default(0) @db.Decimal(15, 2)
+  scholarshipCoverage Decimal          @default(0) @db.Decimal(15, 2)
+  netPayable          Decimal          @default(0) @db.Decimal(15, 2)
+  payments            LearnerPayment[]
+
+  @@unique([learnerId, trainingId, academicYear])
+}
+
+model Budget {
+  id          String       @id @default(cuid())
+  year        Int
+  title       String
+  amount      Decimal      @db.Decimal(15, 2)
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lines       BudgetLine[]
+}
+
+model BudgetLine {
+  id         String               @id @default(cuid())
+  budgetId   String
+  code       String
+  label      String
+  allocated  Decimal              @db.Decimal(15, 2)
+  committed  Decimal              @default(0) @db.Decimal(15, 2)
+  spent      Decimal              @default(0) @db.Decimal(15, 2)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  budget     Budget               @relation(fields: [budgetId], references: [id])
+  operations FinancialOperation[]
+}
+
+model Supplier {
+  id         String               @id @default(cuid())
+  name       String
+  identifier String?
+  phone      String?
+  email      String?
+  address    String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  operations FinancialOperation[]
+}
+
+model FinancialOperation {
+  id           String        @id @default(cuid())
+  reference    String        @unique
+  type         OperationType
+  date         DateTime
+  description  String
+  amount       Decimal       @db.Decimal(15, 2)
+  budgetLineId String?
+  supplierId   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  budgetLine   BudgetLine?   @relation(fields: [budgetLineId], references: [id])
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id])
+}
+
+model AssetCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  assets      Asset[]
+}
+
+model Asset {
+  id                String             @id @default(cuid())
+  inventoryCode     String             @unique
+  name              String
+  description       String?
+  acquisitionDate   DateTime?
+  acquisitionValue  Decimal?           @db.Decimal(15, 2)
+  location          String?
+  status            AssetStatus        @default(ACTIF)
+  categoryId        String?
+  serviceId         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  category          AssetCategory?     @relation(fields: [categoryId], references: [id])
+  service           Service?           @relation(fields: [serviceId], references: [id])
+  maintenances      Maintenance[]
+  securityIncidents SecurityIncident[]
+}
+
+model Maintenance {
+  id          String   @id @default(cuid())
+  assetId     String
+  date        DateTime
+  description String
+  cost        Decimal? @db.Decimal(15, 2)
+  provider    String?
+  status      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  asset       Asset    @relation(fields: [assetId], references: [id])
+}
+
+model Document {
+  id         String         @id @default(cuid())
+  title      String
+  fileName   String
+  storageKey String
+  mimeType   String?
+  size       Int?
+  status     DocumentStatus @default(BROUILLON)
+  authorId   String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  author     User           @relation("DocumentAuthor", fields: [authorId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model PSDAxis {
+  id         String         @id @default(cuid())
+  code       String         @unique
+  title      String
+  purpose    String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  actions    PSDAction[]
+  objectives PSDObjective[]
+}
+
+model PSDObjective {
+  id        String      @id @default(cuid())
+  axisId    String
+  title     String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  actions   PSDAction[]
+  axis      PSDAxis     @relation(fields: [axisId], references: [id])
+}
+
+model PSDAction {
+  id          String        @id @default(cuid())
+  objectiveId String?
+  axisId      String
+  title       String
+  indicator   String?
+  baseline    String?
+  target2031  String?
+  responsible String?
+  startYear   Int
+  endYear     Int
+  budget      Decimal?      @db.Decimal(15, 2)
+  status      ActionStatus  @default(PLANIFIEE)
+  progress    Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  axis        PSDAxis       @relation(fields: [axisId], references: [id])
+  objective   PSDObjective? @relation(fields: [objectiveId], references: [id])
+}
+
+model SecurityIncident {
+  id          String   @id @default(cuid())
+  reference   String   @unique
+  date        DateTime @default(now())
+  location    String?
+  type        String
+  severity    String?
+  description String
+  actions     String?
+  status      String   @default("OUVERT")
+  agentId     String?
+  serviceId   String?
+  assetId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  agent       Agent?   @relation(fields: [agentId], references: [id])
+  asset       Asset?   @relation(fields: [assetId], references: [id])
+  service     Service? @relation(fields: [serviceId], references: [id])
+}
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  type        String?
+  contact     String?
+  phone       String?
+  email       String?
+  address     String?
+  description String?
+  status      String   @default("ACTIF")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Insertion {
+  id           String          @id @default(cuid())
+  learnerId    String
+  year         Int
+  status       InsertionStatus @default(EN_RECHERCHE)
+  structure    String?
+  position     String?
+  contractType String?
+  startDate    DateTime?
+  endDate      DateTime?
+  salary       Decimal?        @db.Decimal(15, 2)
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  trainingId   String?
+  learner      Learner         @relation(fields: [learnerId], references: [id])
+  training     Training?       @relation(fields: [trainingId], references: [id])
+
+  @@index([learnerId])
+  @@index([year])
+  @@index([status])
+}
+
+model Stage {
+  id               String      @id @default(cuid())
+  learnerId        String
+  structure        String
+  address          String?
+  tutorName        String?
+  tutorPhone       String?
+  type             StageType   @default(PROFESSIONNEL)
+  startDate        DateTime
+  endDate          DateTime
+  status           StageStatus @default(PREVU)
+  conventionNumber String?
+  evaluation       Decimal?    @db.Decimal(5, 2)
+  observations     String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  learner          Learner     @relation(fields: [learnerId], references: [id])
+
+  @@index([learnerId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model EntrepreneurshipProject {
+  id              String                 @id @default(cuid())
+  learnerId       String?
+  name            String
+  sector          String
+  description     String?
+  status          EntrepreneurshipStatus @default(IDEE)
+  requestedAmount Decimal?               @db.Decimal(15, 2)
+  financedAmount  Decimal?               @db.Decimal(15, 2)
+  structure       String?
+  startDate       DateTime?
+  notes           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  learner         Learner?               @relation(fields: [learnerId], references: [id])
+
+  @@index([learnerId])
+  @@index([status])
+  @@index([sector])
+}
+
+model Communication {
+  id          String              @id @default(cuid())
+  title       String
+  content     String
+  type        CommunicationType   @default(ANNONCE)
+  status      CommunicationStatus @default(BROUILLON)
+  publishedAt DateTime?
+  authorId    String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  author      User?               @relation(fields: [authorId], references: [id])
+
+  @@index([status])
+  @@index([type])
+  @@index([publishedAt])
+  @@index([authorId])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ActionStatus {
+  PLANIFIEE
+  EN_COURS
+  TERMINEE
+  EN_RETARD
+}
+
+enum DocumentStatus {
+  BROUILLON
+  VALIDE
+  ARCHIVE
+}
+
+enum OperationType {
+  RECETTE
+  DEPENSE
+  ENGAGEMENT
+  PAIEMENT
+}
+
+enum AssetStatus {
+  ACTIF
+  EN_MAINTENANCE
+  HORS_SERVICE
+  REFORME
+}
+
+enum InsertionStatus {
+  EN_RECHERCHE
+  STAGE
+  EMPLOI
+  AUTO_EMPLOI
+  ENTREPRENEUR
+  SANS_EMPLOI
+}
+
+enum StageType {
+  ACADEMIQUE
+  PROFESSIONNEL
+  INSERTION
+}
+
+enum StageStatus {
+  PREVU
+  EN_COURS
+  TERMINE
+  SUSPENDU
+  ANNULE
+}
+
+enum EntrepreneurshipStatus {
+  IDEE
+  ETUDE
+  ACCOMPAGNEMENT
+  FINANCEMENT
+  EN_ACTIVITE
+  ABANDONNE
+}
+
+enum CommunicationStatus {
+  BROUILLON
+  PUBLIE
+  ARCHIVE
+}
+
+enum CommunicationType {
+  ANNONCE
+  INFORMATION
+  EVENEMENT
+  NOTE
+}
+
+enum PaymentMethod {
+  ESPECES
+  WAVE
+  ORANGE_MONEY
+  VIREMENT_BANCAIRE
+  AUTRE
+}
+
+enum PaymentStatus {
+  PAYE
+  PARTIEL
+  IMPAYE
+}
+
+model LearnerPayment {
+  id               String        @id @default(cuid())
+  paymentReference String        @unique
+  learnerId        String
+  enrollmentId     String
+  registeredById   String
+  amount           Decimal       @db.Decimal(15, 2)
+  method           PaymentMethod
+  status           PaymentStatus @default(PAYE)
+  paidAt           DateTime      @default(now())
+  note             String?
+
+  learner      Learner         @relation(fields: [learnerId], references: [id])
+  enrollment   Enrollment      @relation(fields: [enrollmentId], references: [id])
+  registeredBy User            @relation(fields: [registeredById], references: [id])
+  receipt      LearnerReceipt?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([learnerId])
+  @@index([enrollmentId])
+  @@index([registeredById])
+  @@index([paidAt])
+}
+
+model LearnerReceipt {
+  id            String    @id @default(cuid())
+  receiptNumber String    @unique
+  paymentId     String    @unique
+  issuedAt      DateTime  @default(now())
+  printedAt     DateTime?
+
+  payment LearnerPayment @relation(fields: [paymentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

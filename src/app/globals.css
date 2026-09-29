@@ -1444,3 +1444,622 @@ textarea:focus {
   display: block;
   min-height: 100vh;
 }
+
+.logout-button {
+  margin-left: auto;
+  margin-right: 12px;
+  padding: 8px 14px;
+  border: 1px solid #dc2626;
+  border-radius: 8px;
+  background: transparent;
+  color: #dc2626;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #dc2626;
+  color: white;
+}
+
+@media (max-width: 640px) {
+  .logout-button {
+    padding: 7px 10px;
+    font-size: 12px;
+    margin-right: 8px;
+  }
+}
+
+/* ===== Compte utilisateur ===== */
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 14px 18px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #0ea5e9;
+  color: white;
+  font-weight: 700;
+}
+
+.sidebar-user-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-user-info strong,
+.sidebar-user-info small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-user-info strong {
+  font-size: 13px;
+}
+
+.sidebar-user-info small {
+  margin-top: 3px;
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+.sidebar-account {
+  margin-top: auto;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-account-link,
+.sidebar-logout {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 5px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-account-link:hover,
+.sidebar-account-link.is-active {
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.sidebar-logout {
+  color: #ef4444;
+}
+
+.sidebar-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.nav-link.is-active {
+  background: rgba(14, 165, 233, 0.12);
+  font-weight: 600;
+}
+
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-loading-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.profile-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-grid small {
+  color: #64748b;
+}
+
+.profile-grid strong {
+  color: #0f172a;
+}
+
+.password-card {
+  max-width: 650px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.form-field label {
+  font-weight: 600;
+}
+
+.form-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid #dbe3ec;
+  border-radius: 10px;
+  background: white;
+  outline: none;
+}
+
+.form-field input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.form-alert {
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.form-alert-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.form-alert-success {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+  border: 0;
+}
+
+.primary-button {
+  background: #0ea5e9;
+  color: white;
+}
+
+.secondary-button {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
+  }
+}
+
+/* ===== Écran de transition CFP Sédhiou ===== */
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  animation: loadingFadeIn 0.25s ease-out;
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.loading-logo {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoEntrance 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.loading-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: logoPulse 1.8s ease-in-out infinite;
+}
+
+.loading-brand {
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+  animation: brandEntrance 0.7s 0.25s both ease-out;
+}
+
+.loading-brand strong {
+  font-size: 22px;
+  color: #07102f;
+  letter-spacing: -0.02em;
+}
+
+.loading-brand span {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  margin-top: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: loadingSpin 0.8s linear infinite;
+}
+
+.loading-content p {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  animation: loadingFadeIn 0.5s 0.4s both;
+}
+
+@keyframes logoEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) translateY(15px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08) translateY(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes brandEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes loadingSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loadingFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* =========================================================
+   ANIMATION LOGO CFP SÉDHIOU
+   ========================================================= */
+
+.cfp-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  animation: cfpSplashBackground 0.35s ease-out;
+}
+
+.cfp-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: cfpSplashContent 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cfp-splash-logo {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cfpLogoAppear 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cfp-splash-logo img {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+}
+
+.cfp-splash-title {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: cfpTitleAppear 0.8s ease-out 0.25s both;
+}
+
+.cfp-splash-title strong {
+  font-size: 24px;
+  font-weight: 700;
+  color: #123b2a;
+  letter-spacing: -0.02em;
+}
+
+.cfp-splash-title span {
+  font-size: 14px;
+  color: #718096;
+}
+
+.cfp-splash-loader {
+  width: 130px;
+  height: 3px;
+  margin-top: 28px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eee9;
+  animation: cfpLoaderAppear 0.5s ease-out 0.4s both;
+}
+
+.cfp-splash-loader span {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: #0e6a43;
+  animation: cfpLoader 1.15s ease-in-out infinite;
+}
+
+@keyframes cfpSplashBackground {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cfpSplashContent {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cfpLogoAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) rotate(-8deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(1.08) rotate(2deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes cfpTitleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cfpLoaderAppear {
+  from {
+    opacity: 0;
+    transform: scaleX(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes cfpLoader {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+/* Petit écran */
+@media (max-width: 600px) {
+  .cfp-splash-logo {
+    width: 100px;
+    height: 100px;
+  }
+
+  .cfp-splash-logo img {
+    width: 90px;
+    height: 90px;
+  }
+
+  .cfp-splash-title strong {
+    font-size: 21px;
+  }
+
+  .cfp-splash-title span {
+    font-size: 13px;
+  }
+}
+
+/* Respect du mode réduction des animations */
+@media (prefers-reduced-motion: reduce) {
+  .cfp-splash,
+  .cfp-splash-content,
+  .cfp-splash-logo,
+  .cfp-splash-title,
+  .cfp-splash-loader,
+  .cfp-splash-loader span {
+    animation: none !important;
+  }
+}
+
+
+/* =========================================================
+   BOUTON DÉCONNEXION - SIDEBAR DESKTOP
+   ========================================================= */
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+}
+
+.footer-status {
+  margin-bottom: 12px;
+}
+
+.sidebar-logout {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border: 1px solid #ead1d1;
+  border-radius: 10px;
+  background: #fff7f7;
+  color: #b42318;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sidebar-logout:hover {
+  background: #fff0f0;
+  border-color: #e7bcbc;
+  color: #981b1b;
+  transform: translateY(-1px);
+}
+
+.sidebar-logout:active {
+  transform: translateY(0);
+}
+
+.sidebar-logout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Sur mobile, la déconnexion de la sidebar reste disponible */
+@media (max-width: 900px) {
+  .sidebar-logout {
+    min-height: 46px;
+  }
+}
+

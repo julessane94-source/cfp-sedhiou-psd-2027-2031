@@ -1,64 +1,182 @@
 import { prisma } from "@/lib/prisma";
+import CommunicationActions from "@/components/CommunicationActions";
 
 export default async function CommunicationPage() {
-  const messages = await prisma.notification.findMany({
+  const communications = await prisma.communication.findMany({
     orderBy: { createdAt: "desc" },
   });
 
+  const total = communications.length;
+  const brouillons = communications.filter(
+    (c) => c.status === "BROUILLON"
+  ).length;
+  const publiees = communications.filter(
+    (c) => c.status === "PUBLIE"
+  ).length;
+  const evenements = communications.filter(
+    (c) => c.type === "EVENEMENT"
+  ).length;
+
   return (
-    <main className="min-h-screen bg-slate-100 p-6">
-      <h1 className="text-3xl font-bold">Communication</h1>
-      <p className="mt-2 text-slate-600">
-        Communication interne et diffusion des informations administratives.
-      </p>
+    <main className="ui-page">
+      <section className="dashboard-hero animate-rise">
+        <div>
+          <span className="dashboard-kicker">CFP SÉDHIOU</span>
+          <h1>Communication</h1>
+          <p>
+            Gestion des annonces, informations, événements et notes
+            internes du CFP.
+          </p>
+        </div>
+      </section>
 
-      <section className="mt-8 rounded-xl bg-white p-5 shadow">
-        <h2 className="text-xl font-semibold">Nouvelle communication</h2>
+      <section className="dashboard-grid">
+        <div className="dashboard-stat">
+          <div className="stat-icon">📢</div>
+          <div>
+            <span>Total</span>
+            <strong>{total}</strong>
+          </div>
+        </div>
 
-        <form action="/api/communication" method="post"
-          className="mt-4 grid gap-3">
-          <input type="hidden" name="action" value="create" />
+        <div className="dashboard-stat">
+          <div className="stat-icon">📝</div>
+          <div>
+            <span>Brouillons</span>
+            <strong>{brouillons}</strong>
+          </div>
+        </div>
 
-          <input
-            name="userId"
-            required
-            placeholder="ID du destinataire"
-            className="rounded border p-2"
-          />
+        <div className="dashboard-stat">
+          <div className="stat-icon">📣</div>
+          <div>
+            <span>Publiées</span>
+            <strong>{publiees}</strong>
+          </div>
+        </div>
 
-          <input
-            name="title"
-            required
-            placeholder="Titre"
-            className="rounded border p-2"
-          />
+        <div className="dashboard-stat">
+          <div className="stat-icon">📅</div>
+          <div>
+            <span>Événements</span>
+            <strong>{evenements}</strong>
+          </div>
+        </div>
+      </section>
 
-          <textarea
-            name="message"
-            required
-            placeholder="Message"
-            className="rounded border p-2"
-          />
+      <section className="ui-card">
+        <h2>Nouvelle communication</h2>
 
-          <button className="rounded bg-slate-800 px-4 py-2 text-white">
-            Envoyer
+        <form
+          action="/api/communication"
+          method="POST"
+          className="ui-form"
+        >
+          <label>
+            Titre
+            <input
+              name="title"
+              required
+              placeholder="Titre de l'annonce"
+            />
+          </label>
+
+          <label>
+            Type
+            <select name="type" defaultValue="ANNONCE">
+              <option value="ANNONCE">Annonce</option>
+              <option value="INFORMATION">Information</option>
+              <option value="EVENEMENT">Événement</option>
+              <option value="NOTE">Note</option>
+            </select>
+          </label>
+
+          <label className="full-width">
+            Contenu
+            <textarea
+              name="content"
+              rows={6}
+              required
+              placeholder="Rédigez le contenu de la communication..."
+            />
+          </label>
+
+          <label>
+            Statut initial
+            <select name="status" defaultValue="BROUILLON">
+              <option value="BROUILLON">Brouillon</option>
+              <option value="PUBLIE">Publier immédiatement</option>
+            </select>
+          </label>
+
+          <button type="submit">
+            Enregistrer
           </button>
         </form>
       </section>
 
-      <section className="mt-8 rounded-xl bg-white p-5 shadow">
-        <h2 className="text-xl font-semibold">Communications</h2>
+      <section className="ui-card">
+        <h2>Communications</h2>
 
-        <div className="mt-4 space-y-3">
-          {messages.map((message) => (
-            <div key={message.id} className="rounded border p-4">
-              <h3 className="font-semibold">{message.title}</h3>
-              <p className="mt-1 text-slate-600">{message.message}</p>
-              <p className="mt-2 text-sm text-slate-400">
-                Destinataire : {message.userId}
-              </p>
-            </div>
-          ))}
+        <div className="table-wrap">
+          <table className="ui-table">
+            <thead>
+              <tr>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Statut</th>
+                <th>Publication</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {communications.map((communication) => (
+                <tr key={communication.id}>
+                  <td>
+                    <strong>{communication.title}</strong>
+                    <small>
+                      {communication.content.slice(0, 100)}
+                      {communication.content.length > 100 ? "..." : ""}
+                    </small>
+                  </td>
+
+                  <td>{communication.type}</td>
+
+                  <td>
+                    <span
+                      className={`badge badge-${communication.status.toLowerCase()}`}
+                    >
+                      {communication.status}
+                    </span>
+                  </td>
+
+                  <td>
+                    {communication.publishedAt
+                      ? new Date(
+                          communication.publishedAt
+                        ).toLocaleDateString("fr-FR")
+                      : "—"}
+                  </td>
+
+                  <td>
+                    <CommunicationActions
+                      id={communication.id}
+                      status={communication.status}
+                    />
+                  </td>
+                </tr>
+              ))}
+
+              {communications.length === 0 && (
+                <tr>
+                  <td colSpan={5}>
+                    Aucune communication enregistrée.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
     </main>

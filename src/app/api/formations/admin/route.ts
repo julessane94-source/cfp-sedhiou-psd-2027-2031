@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
 
 function genererMatricule(
   integrationYear: number,
@@ -37,6 +38,13 @@ function niveauSuivant(level: string | null) {
 }
 
 export async function POST(request: Request) {
+  if (!(await hasPermission("formations.gerer"))) {
+    return NextResponse.json(
+      { error: "Accès refusé." },
+      { status: 403 }
+    );
+  }
+
   const formData = await request.formData();
   const action = String(formData.get("action") ?? "");
 

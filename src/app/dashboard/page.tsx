@@ -112,6 +112,53 @@ export default async function DashboardPage() {
         ))}
       </section>
 
+      {role === "DIRECTEUR" && (
+        <section className="dashboard-bottom animate-rise">
+          <div className="ui-card">
+            <span>Supervision du Directeur</span>
+            <h2>Vue globale de l’établissement</h2>
+            <p>
+              Accès direct aux principaux indicateurs administratifs,
+              financiers, matériels et de sécurité.
+            </p>
+
+            <div className="dashboard-grid">
+              <a className="dashboard-stat animate-rise" href="/personnel">
+                <div className="stat-icon">👥</div>
+                <div>
+                  <span>Personnel</span>
+                  <strong>{allStats[0].value}</strong>
+                </div>
+              </a>
+
+              <a className="dashboard-stat animate-rise" href="/apprenants">
+                <div className="stat-icon">🎓</div>
+                <div>
+                  <span>Apprenants</span>
+                  <strong>{allStats[1].value}</strong>
+                </div>
+              </a>
+
+              <a className="dashboard-stat animate-rise" href="/finances">
+                <div className="stat-icon">💰</div>
+                <div>
+                  <span>Opérations financières</span>
+                  <strong>{allStats[5].value}</strong>
+                </div>
+              </a>
+
+              <a className="dashboard-stat animate-rise" href="/securite">
+                <div className="stat-icon">🛡️</div>
+                <div>
+                  <span>Incidents sécurité</span>
+                  <strong>{allStats[6].value}</strong>
+                </div>
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="dashboard-bottom animate-rise">
         <div className="ui-card">
           <h2>Accès rapides</h2>
