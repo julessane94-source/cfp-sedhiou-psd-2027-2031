@@ -1,0 +1,39 @@
+
+> app-temp@0.1.0 build
+> next build
+
+▲ Next.js 16.3.6 (Turbopack)
+- Environments: .env
+✓ Running next.config.ts took 39ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.1s
+  Running TypeScript ...
+  Finished TypeScript in 2.8s ...
+  Collecting page data using 1 worker ...
+◇ injected env (0) from .env
+◇ injected env (0) from .env
+  Generating static pages using 1 worker (0/41) ...
+  Generating static pages using 1 worker (10/41) 
+  Generating static pages using 1 worker (20/41) 
+Error occurred prerendering page "/audit". Read more: https://nextjs.org/docs/messages/prerender-error
+Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.auditLog.findMany()` invocation:
+
+
+
+    at async g (src/app/audit/page.tsx:4:16)
+  2 |
+  3 | export default async function AuditPage() {
+> 4 |   const logs = await prisma.auditLog.findMany({
+    |                ^
+  5 |     orderBy: { createdAt: "desc" },
+  6 |     take: 100,
+  7 |     include: { {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'AuditLog' },
+  clientVersion: '7.10.0',
+  digest: '4223924142'
+}
+Export encountered an error on /audit/page: /audit, exiting the build.
+⨯ Next.js build worker exited with code: 1 and signal: null

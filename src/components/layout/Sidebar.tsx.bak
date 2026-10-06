@@ -129,13 +129,6 @@ const allGroups: MenuGroup[] = [
 
 const roleMenus: Record<string, string[]> = {
   DIRECTEUR: [
-    "/finances",
-    "/finances/caisse",
-    "/finances/fonds",
-    "/finances/depenses",
-    "/finances/feuille-de-route",
-    "/finances/rapports",
-
     "/dashboard",
     "/apprenants",
     "/candidature",
@@ -148,18 +141,12 @@ const roleMenus: Record<string, string[]> = {
     "/communication",
     "/documents",
     "/notifications",
+    "/finances",
     "/infrastructures",
     "/securite",
   ],
 
   GESTIONNAIRE: [
-    "/finances",
-    "/finances/caisse",
-    "/finances/fonds",
-    "/finances/depenses",
-    "/finances/feuille-de-route",
-    "/finances/rapports",
-
     "/dashboard",
     "/apprenants",
     "/candidature",

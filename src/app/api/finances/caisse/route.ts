@@ -1,152 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import {
+  CashMovementType,
+  CashSourceType,
+} from "@prisma/client";
 
-export const dynamic = "force-dynamic";
+const ROLES_AUTORISES = ["GESTIONNAIRE", "DIRECTEUR"];
 
-const ROLES_AUTORISES = [
-  "GESTIONNAIRE",
-  "DIRECTEUR",
-  "COMPTABLE DES MATIERES",
-];
+function genererReference(prefix = "CAI") {
+  const maintenant = new Date();
 
-function roleNormalise(role?: string) {
-  return (role || "").trim().toUpperCase();
-}
+  const date = maintenant
+    .toISOString()
+    .replace(/\D/g, "")
+    .slice(0, 14);
 
-function numeroMouvement(prefix: string) {
-  const date = new Date();
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const t = Date.now().toString().slice(-6);
+  const aleatoire = Math.random()
+    .toString(36)
+    .slice(2, 7)
+    .toUpperCase();
 
-  return `${prefix}-${y}${m}${d}-${t}`;
-}
-
-export async function GET(request: Request) {
-  try {
-    const session = await getSession();
-
-    if (!session) {
-      return NextResponse.json(
-        { error: "Authentification requise." },
-        { status: 401 }
-      );
-    }
-
-    if (!ROLES_AUTORISES.includes(roleNormalise(session.role))) {
-      return NextResponse.json(
-        { error: "Accès refusé." },
-        { status: 403 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-
-    const type = searchParams.get("type");
-    const sourceType = searchParams.get("sourceType");
-    const category = searchParams.get("category");
-    const from = searchParams.get("from");
-    const to = searchParams.get("to");
-
-    const where: any = {};
-
-    if (type === "ENTREE" || type === "SORTIE") {
-      where.type = type;
-    }
-
-    if (
-      sourceType === "INSCRIPTION" ||
-      sourceType === "FONDS" ||
-      sourceType === "DEPENSE" ||
-      sourceType === "AUTRE" ||
-      sourceType === "AJUSTEMENT"
-    ) {
-      where.sourceType = sourceType;
-    }
-
-    if (category) {
-      where.category = {
-        contains: category,
-        mode: "insensitive",
-      };
-    }
-
-    if (from || to) {
-      where.movementDate = {};
-
-      if (from) {
-        where.movementDate.gte = new Date(`${from}T00:00:00`);
-      }
-
-      if (to) {
-        where.movementDate.lte = new Date(`${to}T23:59:59.999`);
-      }
-    }
-
-    const movements = await prisma.cashMovement.findMany({
-      where,
-      include: {
-        registeredBy: true,
-        learnerPayment: {
-          include: {
-            learner: true,
-            enrollment: {
-              include: {
-                training: true,
-              },
-            },
-            receipt: true,
-          },
-        },
-      },
-      orderBy: {
-        movementDate: "desc",
-      },
-      take: 200,
-    });
-
-    const [entrees, sorties] = await Promise.all([
-      prisma.cashMovement.aggregate({
-        where: {
-          ...where,
-          type: "ENTREE",
-        },
-        _sum: {
-          amount: true,
-        },
-      }),
-      prisma.cashMovement.aggregate({
-        where: {
-          ...where,
-          type: "SORTIE",
-        },
-        _sum: {
-          amount: true,
-        },
-      }),
-    ]);
-
-    const totalEntrees = Number(entrees._sum.amount || 0);
-    const totalSorties = Number(sorties._sum.amount || 0);
-
-    return NextResponse.json({
-      movements,
-      summary: {
-        totalEntrees,
-        totalSorties,
-        solde: totalEntrees - totalSorties,
-      },
-    });
-  } catch (error) {
-    console.error("GET /api/finances/caisse:", error);
-
-    return NextResponse.json(
-      { error: "Erreur lors du chargement de la caisse." },
-      { status: 500 }
-    );
-  }
+  return `${prefix}-${date}-${aleatoire}`;
 }
 
 export async function POST(request: Request) {
@@ -155,119 +30,118 @@ export async function POST(request: Request) {
 
     if (!session) {
       return NextResponse.json(
-        { error: "Authentification requise." },
+        { error: "Session non authentifiée." },
         { status: 401 }
       );
     }
 
-    if (!ROLES_AUTORISES.includes(roleNormalise(session.role))) {
+    const role = session.role.trim().toUpperCase();
+
+    if (!ROLES_AUTORISES.includes(role)) {
       return NextResponse.json(
-        { error: "Accès refusé." },
+        { error: "Vous n'êtes pas autorisé à gérer la caisse." },
         { status: 403 }
       );
     }
 
     const body = await request.json();
 
-    const {
-      type,
-      sourceType,
-      category,
-      label,
-      amount,
-      movementDate,
-      paymentMethod,
-      reference,
-      note,
-      supportingDocument,
-    } = body;
+    const typeValue = String(body.type || "").trim().toUpperCase();
+    const sourceTypeValue = String(body.sourceType || "").trim().toUpperCase();
 
-    if (!type || !sourceType || !category || !label || amount === undefined) {
-      return NextResponse.json(
-        {
-          error:
-            "type, sourceType, category, label et amount sont obligatoires.",
-        },
-        { status: 400 }
-      );
-    }
+    const category = String(body.category || "").trim().toUpperCase();
+    const label = String(body.label || "").trim();
+    const reference = String(body.reference || "").trim();
+    const note = String(body.note || "").trim();
 
-    if (!["ENTREE", "SORTIE"].includes(type)) {
+    const amount = Number(body.amount);
+
+    if (typeValue !== "ENTREE" && typeValue !== "SORTIE") {
       return NextResponse.json(
         { error: "Type de mouvement invalide." },
         { status: 400 }
       );
     }
 
-    if (
-      !["FONDS", "DEPENSE", "AUTRE", "AJUSTEMENT"].includes(sourceType)
-    ) {
+    if (sourceTypeValue !== "FONDS" && sourceTypeValue !== "DEPENSE") {
       return NextResponse.json(
-        { error: "Source de mouvement invalide." },
+        { error: "Source du mouvement invalide." },
         { status: 400 }
       );
     }
 
-    const montant = Number(amount);
+    if (!category) {
+      return NextResponse.json(
+        { error: "La catégorie est obligatoire." },
+        { status: 400 }
+      );
+    }
 
-    if (!Number.isFinite(montant) || montant <= 0) {
+    if (!label) {
+      return NextResponse.json(
+        { error: "Le libellé est obligatoire." },
+        { status: 400 }
+      );
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         { error: "Le montant doit être supérieur à zéro." },
         { status: 400 }
       );
     }
 
-    if (sourceType === "DEPENSE" && type !== "SORTIE") {
+    if (sourceTypeValue === "FONDS" && typeValue !== "ENTREE") {
       return NextResponse.json(
-        { error: "Une dépense doit être une sortie de caisse." },
+        { error: "Un fonds reçu doit être une entrée." },
         { status: 400 }
       );
     }
 
-    if (sourceType === "FONDS" && type !== "ENTREE") {
+    if (sourceTypeValue === "DEPENSE" && typeValue !== "SORTIE") {
       return NextResponse.json(
-        { error: "Un fonds reçu doit être une entrée de caisse." },
+        { error: "Une dépense doit être une sortie." },
         { status: 400 }
       );
     }
 
-    const movement = await prisma.cashMovement.create({
+    const type: CashMovementType =
+      typeValue === "ENTREE"
+        ? CashMovementType.ENTREE
+        : CashMovementType.SORTIE;
+
+    const sourceType: CashSourceType =
+      sourceTypeValue === "FONDS"
+        ? CashSourceType.FONDS
+        : CashSourceType.DEPENSE;
+
+    const mouvement = await prisma.cashMovement.create({
       data: {
-        movementNumber: numeroMouvement(
-          type === "ENTREE" ? "ENC" : "SOR"
-        ),
+        movementNumber: genererReference(),
         type,
         sourceType,
-        category: String(category).trim(),
-        label: String(label).trim(),
-        amount: montant,
-        movementDate: movementDate
-          ? new Date(movementDate)
-          : new Date(),
-        paymentMethod: paymentMethod || null,
-        reference: reference?.trim() || null,
-        note: note?.trim() || null,
-        supportingDocument:
-          supportingDocument?.trim() || null,
+        category,
+        label,
+        amount,
+        movementDate: new Date(),
+        reference: reference || null,
+        note: note || null,
         registeredById: session.userId,
-      },
-      include: {
-        registeredBy: true,
       },
     });
 
     return NextResponse.json(
       {
         success: true,
-        movement,
+        movement: mouvement,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("POST /api/finances/caisse:", error);
+    console.error("Erreur création mouvement caisse :", error);
 
     return NextResponse.json(
-      { error: "Erreur lors de l'enregistrement du mouvement." },
+      { error: "Impossible d'enregistrer le mouvement de caisse." },
       { status: 500 }
     );
   }
