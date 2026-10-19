@@ -65,7 +65,7 @@ export default async function ApprenantsPage({
             Apprenants
           </h1>
           <p className="mt-2 text-slate-500">
-            Gestion administrative et financière des apprenants du CFP Sédhiou.
+            Consultez tous les apprenants inscrits au CFP Sédhiou, suivez leurs formations et retrouvez leur fiche détaillée.
           </p>
         </div>
 

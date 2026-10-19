@@ -56,7 +56,6 @@ export default async function DashboardPage() {
   const roleStats: Record<string, typeof allStats> = {
     DIRECTEUR: allStats,
     GESTIONNAIRE: [
-      allStats[0],
       allStats[1],
       allStats[2],
       allStats[4],
@@ -90,6 +89,7 @@ export default async function DashboardPage() {
     "/candidature",
     "/formations",
     "/finances",
+    "/finances/caisse",
     "/infrastructures",
     "/personnel",
     "/stages",

@@ -5,6 +5,7 @@ import {
   Bell,
   BriefcaseBusiness,
   Building2,
+  BookOpenText,
   ClipboardCheck,
   FileText,
   GraduationCap,
@@ -61,6 +62,7 @@ export const navigationGroups: MenuGroup[] = [
     title: "Gestion & contrôle",
     items: [
       { label: "Finances", href: "/finances", icon: Wallet },
+      { label: "Registre de caisse", href: "/finances/caisse", icon: BookOpenText },
       { label: "Patrimoine", href: "/infrastructures", icon: Building2 },
       { label: "Sécurité", href: "/securite", icon: ShieldCheck },
     ],
