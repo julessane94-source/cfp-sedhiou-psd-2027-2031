@@ -13,7 +13,7 @@ export default function AppShell({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -37,11 +37,10 @@ export default function AppShell({
   };
 
   /*
-   * Animation au premier chargement de l'application.
+   * L’écran d’accueil animé est réservé aux transitions de connexion.
+   * Les visites suivantes affichent la page immédiatement.
    */
   useEffect(() => {
-    startSplash();
-
     return () => {
       if (splashTimer.current) {
         clearTimeout(splashTimer.current);
@@ -185,13 +184,6 @@ export default function AppShell({
       <Sidebar
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-      />
-
-      <div
-        className={`sidebar-overlay ${
-          menuOpen ? "is-visible" : ""
-        }`}
-        onClick={() => setMenuOpen(false)}
       />
 
       <div className="app-main">
