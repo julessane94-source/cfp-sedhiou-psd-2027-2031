@@ -1,3 +1,4 @@
+import { normalizeRole } from "@/lib/role-routes";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
@@ -16,9 +17,10 @@ async function roleHasPermission(session: SessionPayload, permissionKey: string)
   });
 
   if (!role) return false;
-  if (role.name === "DIRECTEUR") return true;
-  if (role.name === "CAI_INSERTION" && permissionKey === "insertion.gerer") return true;
-  if (normalizePermissionKey(permissionKey) === "communication.manage" && role.name !== "CELLULE_COM") return false;
+  const roleName = normalizeRole(role.name);
+  if (roleName === "DIRECTEUR") return true;
+  if (roleName === "CAI_INSERTION" && normalizePermissionKey(permissionKey) === "insertion.manage") return true;
+  if (normalizePermissionKey(permissionKey) === "communication.manage" && roleName !== "CELLULE_COM") return false;
 
   const expectedKey = normalizePermissionKey(permissionKey);
   return role.permissions.some(({ permission }) => normalizePermissionKey(permission.key) === expectedKey);

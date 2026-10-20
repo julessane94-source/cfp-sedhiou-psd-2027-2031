@@ -89,6 +89,7 @@ export default async function DashboardPage() {
       (stat.href.startsWith("/finances/") && allowedRoutes.has("/finances"))
   );
   const quickRouteOrder = [
+    "/utilisateurs",
     "/apprenants",
     "/candidature",
     "/formations",
