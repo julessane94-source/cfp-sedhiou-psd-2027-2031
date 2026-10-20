@@ -47,8 +47,8 @@ export default async function DashboardPage() {
     { title: "Apprenants", value: learners, icon: "🎓", href: "/apprenants" },
     { title: "Formations", value: trainings, icon: "📚", href: "/formations" },
     { title: "Patrimoine", value: assets, icon: "🏢", href: "/infrastructures" },
-    { title: "Budgets", value: budgets, icon: "💰", href: "/finances" },
-    { title: "Opérations", value: operations, icon: "💳", href: "/finances" },
+    { title: "Budgets", value: budgets, icon: "💰", href: "/finances/budgets" },
+    { title: "Opérations", value: operations, icon: "💳", href: "/finances/operations" },
     { title: "Sécurité", value: incidents, icon: "🛡️", href: "/securite" },
     { title: "Documents", value: documents, icon: "📄", href: "/documents" },
   ];
@@ -83,7 +83,11 @@ export default async function DashboardPage() {
   const stats = roleStats[role] ?? allStats;
   const menuItems = getVisibleMenuItems(role);
   const allowedRoutes = new Set(menuItems.map((item) => item.href));
-  const visibleStats = stats.filter((stat) => allowedRoutes.has(stat.href));
+  const visibleStats = stats.filter(
+    (stat) =>
+      allowedRoutes.has(stat.href) ||
+      (stat.href.startsWith("/finances/") && allowedRoutes.has("/finances"))
+  );
   const quickRouteOrder = [
     "/apprenants",
     "/candidature",

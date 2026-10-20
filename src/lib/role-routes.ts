@@ -3,12 +3,13 @@ export const roleRoutes: Record<string, string[]> = {
     "/dashboard", "/apprenants", "/candidature", "/formations", "/stages",
     "/insertion", "/entrepreneuriat", "/personnel", "/partenaires",
     "/communication", "/documents", "/notifications", "/audit",
-    "/finances", "/finances/caisse", "/infrastructures", "/securite",
+    "/finances", "/finances/budgets", "/finances/operations", "/finances/caisse", "/infrastructures", "/securite",
   ],
   GESTIONNAIRE: [
     "/dashboard", "/apprenants", "/candidature", "/formations", "/stages",
     "/insertion", "/entrepreneuriat", "/partenaires", "/communication",
-    "/documents", "/notifications", "/finances", "/finances/caisse",
+    "/documents", "/notifications", "/finances", "/finances/budgets",
+    "/finances/operations", "/finances/caisse",
     "/infrastructures",
   ],
   COMPTABLE_MATIERES: [
