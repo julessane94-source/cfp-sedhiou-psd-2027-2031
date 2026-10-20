@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Sidebar from "./layout/Sidebar";
@@ -13,7 +13,7 @@ export default function AppShell({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -37,10 +37,15 @@ export default function AppShell({
   };
 
   /*
-   * L’écran d’accueil animé est réservé aux transitions de connexion.
-   * Les visites suivantes affichent la page immédiatement.
+   * Affiche le logo pendant le chargement initial, puis le retire après
+   * une courte transition. Le contenu protégé reste caché jusqu'au contrôle
+   * de session.
    */
   useEffect(() => {
+    splashTimer.current = setTimeout(() => {
+      setShowSplash(false);
+    }, 950);
+
     return () => {
       if (splashTimer.current) {
         clearTimeout(splashTimer.current);
@@ -49,17 +54,13 @@ export default function AppShell({
   }, []);
 
   /*
-   * Animation lorsqu'on passe de la connexion
-   * vers une page protégée après authentification.
+   * Affiche le logo avant chaque changement de page, y compris après
+   * authentification et pendant la navigation entre les espaces.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previous = previousPathname.current;
 
-    if (
-      previous &&
-      (previous === "/" || previous === "/connexion") &&
-      !isLoginPage
-    ) {
+    if (previous && previous !== pathname) {
       startSplash();
     }
 
@@ -122,7 +123,7 @@ export default function AppShell({
   /*
    * Écran d'animation du logo.
    */
-  if (showSplash) {
+  if (showSplash || checkingSession) {
     return (
       <div className="cfp-splash">
         <div className="cfp-splash-content">
@@ -158,20 +159,6 @@ export default function AppShell({
         <main className="app-content">
           <ScrollReveal>{children}</ScrollReveal>
         </main>
-      </div>
-    );
-  }
-
-  /*
-   * Vérification de session.
-   */
-  if (checkingSession) {
-    return (
-      <div className="app-loading">
-        <div className="app-loading-card">
-          <div className="status-dot" />
-          <strong>Vérification de la session...</strong>
-        </div>
       </div>
     );
   }
@@ -237,3 +224,4 @@ export default function AppShell({
     </div>
   );
 }
+
