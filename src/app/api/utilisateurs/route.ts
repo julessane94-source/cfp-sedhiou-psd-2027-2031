@@ -11,7 +11,8 @@ export async function GET() {
   if (!authorization.ok) return authorization.response;
 
   // Rend le rôle COM disponible immédiatement, y compris sur une base déjà en production.
-  await prisma.$transaction(async (tx) => {
+  try {
+    await prisma.$transaction(async (tx) => {
     const role = await tx.role.upsert({
       where: { name: "CELLULE_COM" },
       update: { description: "Gestion des communications et informations du CFP" },
@@ -31,6 +32,11 @@ export async function GET() {
       });
     }
   });
+
+  } catch (error) {
+    // La préparation du rôle Communication ne doit pas bloquer la liste des comptes.
+    console.error("Initialisation du rôle Communication:", error);
+  }
 
   const [users, roles] = await Promise.all([
     prisma.user.findMany({
