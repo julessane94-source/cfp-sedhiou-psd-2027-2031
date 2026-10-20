@@ -637,3 +637,24 @@ model RoadmapActivity {
   @@index([status])
   @@index([startDate])
 }
+
+
+model Candidature {
+  id             String   @id @default(cuid())
+  reference      String   @unique
+  firstName      String
+  lastName       String
+  email          String
+  phone          String
+  birthDate      DateTime?
+  address        String?
+  trainingId     String?
+  trainingName   String
+  motivation     String?  @db.Text
+  status         String   @default("EN_ATTENTE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+}
