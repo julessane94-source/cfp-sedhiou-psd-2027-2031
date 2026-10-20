@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import styles from "./formations-admin.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,7 @@ export default async function AdminFormations() {
               className="rounded border p-3"
             />
 
-            <button className="rounded bg-blue-600 p-3 font-semibold text-white">
+            <button className={styles.primaryAction}>
               Ajouter
             </button>
           </form>
@@ -133,7 +134,7 @@ export default async function AdminFormations() {
               className="rounded border p-3"
             />
 
-            <button className="rounded bg-emerald-600 p-3 font-semibold text-white">
+            <button className={styles.successAction}>
               Ajouter l'apprenant
             </button>
           </form>
