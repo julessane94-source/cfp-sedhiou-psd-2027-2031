@@ -38,6 +38,7 @@ export async function GET() {
     console.error("Initialisation du rôle Communication:", error);
   }
 
+  await prisma.role.upsert({ where: { name: "CAI_INSERTION" }, update: { description: "Cellule CAI - appui insertion" }, create: { name: "CAI_INSERTION", description: "Cellule CAI - appui insertion" } });
   const [users, roles] = await Promise.all([
     prisma.user.findMany({
       orderBy: [{ status: "asc" }, { lastName: "asc" }, { firstName: "asc" }],

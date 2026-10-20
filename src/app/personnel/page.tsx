@@ -4,6 +4,8 @@ import CreaCaiAccess from "./cai-access";
 export const dynamic = "force-dynamic";
 
 export default async function PersonnelPage() {
+  await prisma.role.upsert({ where: { name: "CAI_INSERTION" }, update: { description: "Cellule CAI - appui insertion" }, create: { name: "CAI_INSERTION", description: "Cellule CAI - appui insertion" } });
+
   const [agents, services, roles] = await Promise.all([
     prisma.agent.findMany({
       include: { service: true, user: { select: { email: true, role: { select: { name: true } } } } },
