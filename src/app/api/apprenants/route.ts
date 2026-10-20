@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { authorizeApi } from "@/lib/permissions";
 
 function genererReference(prefix: string) {
   return `${prefix}-${new Date().getFullYear()}-${crypto
@@ -54,14 +54,8 @@ function calculerStatut(totalPaye: number, netPayable: number) {
 }
 
 export async function GET(request: Request) {
-  const session = await getSession();
-
-  if (!session) {
-    return NextResponse.json(
-      { error: "Session expirée." },
-      { status: 401 }
-    );
-  }
+  const authorization = await authorizeApi("apprenants.voir");
+  if (!authorization.ok) return authorization.response;
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.trim() ?? "";
@@ -110,27 +104,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
-
-  if (!session) {
-    return NextResponse.json(
-      { error: "Session expirée. Veuillez vous reconnecter." },
-      { status: 401 }
-    );
-  }
-
-  const rolesAutorises = [
-    "SURVEILLANT",
-    "GESTIONNAIRE",
-    "DIRECTEUR",
-  ];
-
-  if (!rolesAutorises.includes(session.role)) {
-    return NextResponse.json(
-      { error: "Vous n'êtes pas autorisé à enregistrer un apprenant." },
-      { status: 403 }
-    );
-  }
+  const authorization = await authorizeApi("apprenants.gerer");
+  if (!authorization.ok) return authorization.response;
+  const session = authorization.session;
 
   try {
     const formData = await request.formData();

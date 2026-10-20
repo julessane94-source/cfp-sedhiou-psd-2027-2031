@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     "Plateforme de gestion administrative, pédagogique et financière du CFP Sédhiou.",
 };
 
+// Les vues consultent les données opérationnelles de PostgreSQL à chaque requête.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr" className="h-full antialiased">

@@ -54,6 +54,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.status !== "ACTIVE" || user.roleId !== session.roleId) {
+      return NextResponse.json(
+        { error: "Ce compte n’est plus actif. Veuillez contacter le directeur." },
+        { status: 403 }
+      );
+    }
+
     const validPassword = await bcrypt.compare(
       currentPassword,
       user.passwordHash

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { authorizeApi } from "@/lib/permissions";
+import { revalidatePath } from "next/cache";
 import {
   CashMovementType,
   CashSourceType,
 } from "@prisma/client";
-
-const ROLES_AUTORISES = ["GESTIONNAIRE", "DIRECTEUR"];
 
 function genererReference(prefix = "CAI") {
   const maintenant = new Date();
@@ -26,23 +25,9 @@ function genererReference(prefix = "CAI") {
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-
-    if (!session) {
-      return NextResponse.json(
-        { error: "Session non authentifiée." },
-        { status: 401 }
-      );
-    }
-
-    const role = session.role.trim().toUpperCase();
-
-    if (!ROLES_AUTORISES.includes(role)) {
-      return NextResponse.json(
-        { error: "Vous n'êtes pas autorisé à gérer la caisse." },
-        { status: 403 }
-      );
-    }
+    const authorization = await authorizeApi("finances.gerer");
+    if (!authorization.ok) return authorization.response;
+    const session = authorization.session;
 
     const body = await request.json();
 
@@ -129,6 +114,8 @@ export async function POST(request: Request) {
         registeredById: session.userId,
       },
     });
+    revalidatePath("/finances/caisse");
+    revalidatePath("/finances");
 
     return NextResponse.json(
       {

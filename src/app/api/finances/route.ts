@@ -2,15 +2,11 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { OperationType } from "@prisma/client";
-import { hasPermission } from "@/lib/permissions";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
-  if (!(await hasPermission("finances.gerer"))) {
-    return NextResponse.json(
-      { error: "Accès refusé." },
-      { status: 403 }
-    );
-  }
+  const authorization = await authorizeApi("finances.gerer");
+  if (!authorization.ok) return authorization.response;
 
   try {
     const formData = await request.formData();
@@ -109,45 +105,33 @@ export async function POST(request: Request) {
         throw new Error("Type d'opération invalide.");
       }
 
-      await prisma.financialOperation.create({
-        data: {
-          reference,
-          type: type as OperationType,
-          date: new Date(`${dateValue}T00:00:00.000Z`),
-          description,
-          amount,
-          budgetLineId: budgetLineId || null,
-          supplierId: supplierId || null,
-        },
-      });
-
-      if (budgetLineId) {
-        const line = await prisma.budgetLine.findUnique({
-          where: { id: budgetLineId },
+      await prisma.$transaction(async (tx) => {
+        await tx.financialOperation.create({
+          data: {
+            reference,
+            type: type as OperationType,
+            date: new Date(`${dateValue}T00:00:00.000Z`),
+            description,
+            amount,
+            budgetLineId: budgetLineId || null,
+            supplierId: supplierId || null,
+          },
         });
 
-        if (line) {
-          const update: {
-            committed?: number;
-            spent?: number;
-          } = {};
-
-          if (type === "ENGAGEMENT") {
-            update.committed = Number(line.committed) + amount;
-          }
-
-          if (type === "DEPENSE" || type === "PAIEMENT") {
-            update.spent = Number(line.spent) + amount;
-          }
-
-          if (Object.keys(update).length > 0) {
-            await prisma.budgetLine.update({
-              where: { id: budgetLineId },
-              data: update,
-            });
-          }
+        if (budgetLineId && type === "ENGAGEMENT") {
+          await tx.budgetLine.update({
+            where: { id: budgetLineId },
+            data: { committed: { increment: amount } },
+          });
         }
-      }
+
+        if (budgetLineId && (type === "DEPENSE" || type === "PAIEMENT")) {
+          await tx.budgetLine.update({
+            where: { id: budgetLineId },
+            data: { spent: { increment: amount } },
+          });
+        }
+      });
     }
 
     if (action === "budgetLine") {
@@ -171,6 +155,8 @@ export async function POST(request: Request) {
     }
 
     revalidatePath("/finances");
+    revalidatePath("/finances/operations");
+    revalidatePath("/finances/budgets");
 
     return NextResponse.redirect(
       new URL("/finances", request.url),

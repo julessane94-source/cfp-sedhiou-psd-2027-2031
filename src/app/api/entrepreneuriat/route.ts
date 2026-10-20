@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { EntrepreneurshipStatus } from "@prisma/client";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("entrepreneuriat.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const formData = await request.formData();
 
@@ -47,6 +50,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const authorization = await authorizeApi("entrepreneuriat.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const body = await request.json();
 

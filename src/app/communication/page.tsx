@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import CommunicationActions from "@/components/CommunicationActions";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function CommunicationPage() {
-  const communications = await prisma.communication.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const [communications, canManage] = await Promise.all([
+    prisma.communication.findMany({ orderBy: { createdAt: "desc" } }),
+    hasPermission("communication.gerer"),
+  ]);
 
   const total = communications.length;
   const brouillons = communications.filter(
@@ -64,7 +66,7 @@ export default async function CommunicationPage() {
         </div>
       </section>
 
-      <section className="ui-card">
+      {canManage && <section className="ui-card">
         <h2>Nouvelle communication</h2>
 
         <form
@@ -113,7 +115,7 @@ export default async function CommunicationPage() {
             Enregistrer
           </button>
         </form>
-      </section>
+      </section>}
 
       <section className="ui-card">
         <h2>Communications</h2>
@@ -126,7 +128,7 @@ export default async function CommunicationPage() {
                 <th>Type</th>
                 <th>Statut</th>
                 <th>Publication</th>
-                <th>Actions</th>
+                {canManage && <th>Actions</th>}
               </tr>
             </thead>
 
@@ -159,18 +161,18 @@ export default async function CommunicationPage() {
                       : "—"}
                   </td>
 
-                  <td>
+                  {canManage && <td>
                     <CommunicationActions
                       id={communication.id}
                       status={communication.status}
                     />
-                  </td>
+                  </td>}
                 </tr>
               ))}
 
               {communications.length === 0 && (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={canManage ? 5 : 4}>
                     Aucune communication enregistrée.
                   </td>
                 </tr>

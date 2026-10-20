@@ -3276,6 +3276,7 @@ tbody tr:hover {
   transform: translateY(18px) scale(.995) !important;
   filter: none !important;
   transition: opacity .45s cubic-bezier(.2,.8,.2,1), transform .45s cubic-bezier(.2,.8,.2,1) !important;
+  transition-delay: var(--reveal-delay, 0ms) !important;
 }
 
 .scroll-reveal.scroll-visible {

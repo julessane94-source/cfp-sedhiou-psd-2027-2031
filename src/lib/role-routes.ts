@@ -4,6 +4,7 @@ export const roleRoutes: Record<string, string[]> = {
     "/insertion", "/entrepreneuriat", "/personnel", "/partenaires",
     "/communication", "/documents", "/notifications", "/audit",
     "/finances", "/finances/budgets", "/finances/operations", "/finances/caisse", "/infrastructures", "/securite",
+    "/utilisateurs",
   ],
   GESTIONNAIRE: [
     "/dashboard", "/apprenants", "/candidature", "/formations", "/stages",
@@ -25,6 +26,7 @@ export const roleRoutes: Record<string, string[]> = {
   FORMATEUR: [
     "/dashboard", "/formations", "/apprenants", "/stages", "/documents",
   ],
+  CELLULE_COM: ["/dashboard", "/communication", "/notifications"],
   CAI_INSERTION: ["/insertion"],
 };
 

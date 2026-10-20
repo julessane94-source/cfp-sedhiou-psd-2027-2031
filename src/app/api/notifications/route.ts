@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { authorizeApi } from "@/lib/permissions";
+import { revalidatePath } from "next/cache";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("notifications.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const formData = await request.formData();
 
@@ -15,25 +19,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findFirst({
-      orderBy: { createdAt: "asc" },
+    const recipients = await prisma.user.findMany({
+      where: { status: "ACTIVE" },
+      select: { id: true },
     });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Aucun utilisateur disponible." },
-        { status: 400 }
-      );
+    if (!recipients.length) {
+      return NextResponse.json({ error: "Aucun compte actif ne peut recevoir la notification." }, { status: 400 });
     }
 
-    await prisma.notification.create({
-      data: {
-        userId: user.id,
-        title,
-        message,
-        read: false,
-      },
+    await prisma.notification.createMany({
+      data: recipients.map(({ id }) => ({ userId: id, title, message, read: false })),
     });
+    revalidatePath("/notifications");
 
     return NextResponse.redirect(
       new URL("/notifications", request.url)
@@ -47,17 +44,25 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const authorization = await authorizeApi("notifications.voir");
+  if (!authorization.ok) return authorization.response;
   try {
     const { id, read } = await request.json();
 
-    const notification = await prisma.notification.update({
-      where: { id },
+    if (typeof id !== "string" || !id || typeof read !== "boolean") {
+      return NextResponse.json({ error: "Notification invalide." }, { status: 400 });
+    }
+
+    const result = await prisma.notification.updateMany({
+      where: { id, userId: authorization.session.userId },
       data: {
-        read: Boolean(read),
+        read,
       },
     });
+    if (!result.count) return NextResponse.json({ error: "Notification introuvable." }, { status: 404 });
+    revalidatePath("/notifications");
 
-    return NextResponse.json(notification);
+    return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(
       { error: "Impossible de modifier la notification." },

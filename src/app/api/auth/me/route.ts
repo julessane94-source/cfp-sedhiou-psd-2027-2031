@@ -27,6 +27,10 @@ export async function GET() {
       );
     }
 
+    if (user.status !== "ACTIVE" || user.roleId !== session.roleId) {
+      return NextResponse.json({ authenticated: false }, { status: 401 });
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: {

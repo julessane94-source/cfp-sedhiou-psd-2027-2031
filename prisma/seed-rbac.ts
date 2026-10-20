@@ -13,7 +13,7 @@ const droits: Record<string, string[]> = {
     "insertion.voir", "insertion.gerer",
     "entrepreneuriat.voir", "entrepreneuriat.gerer",
     "partenaires.voir", "partenaires.gerer",
-    "communication.voir", "communication.gerer",
+    "communication.voir",
     "documents.voir", "documents.gerer",
     "notifications.voir", "notifications.gerer",
   ],
@@ -72,6 +72,12 @@ const droits: Record<string, string[]> = {
     "documents.voir",
     "notifications.voir",
   ],
+
+  CELLULE_COM: [
+    "dashboard.voir",
+    "communication.voir", "communication.gerer",
+    "notifications.voir",
+  ],
 };
 
 async function main() {
@@ -111,6 +117,15 @@ async function main() {
     }
 
     console.log(`✓ ${role.name} configuré`);
+  }
+
+  if (role.name !== "DIRECTEUR" && role.name !== "CELLULE_COM") {
+    const manageCommunication = await prisma.permission.findUnique({ where: { key: "communication.gerer" } });
+    if (manageCommunication) {
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: role.id, permissionId: manageCommunication.id },
+      });
+    }
   }
 
   console.log("RBAC configuré avec succès.");

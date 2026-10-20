@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { InsertionStatus } from "@prisma/client";
-import { hasPermission } from "@/lib/permissions";
+import { authorizeApi } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 const STATUSES = new Set([
@@ -8,9 +8,8 @@ const STATUSES = new Set([
 ]);
 
 export async function POST(request: Request) {
-  if (!(await hasPermission("insertion.gerer"))) {
-    return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
-  }
+  const authorization = await authorizeApi("insertion.gerer");
+  if (!authorization.ok) return authorization.response;
 
   try {
     const form = await request.formData();

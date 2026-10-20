@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("partenaires.gerer");
+  if (!authorization.ok) return authorization.response;
   const formData = await request.formData();
   const action = String(formData.get("action") || "");
 

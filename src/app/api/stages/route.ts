@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { StageStatus, StageType } from "@prisma/client";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("stages.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const formData = await request.formData();
 
@@ -49,6 +52,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const authorization = await authorizeApi("stages.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const { id, status, evaluation, observations } = await request.json();
 

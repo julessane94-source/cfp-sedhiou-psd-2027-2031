@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { DocumentStatus } from "@prisma/client";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("documents.gerer");
+  if (!authorization.ok) return authorization.response;
   const formData = await request.formData();
   const action = String(formData.get("action") ?? "");
 
@@ -31,17 +34,6 @@ export async function POST(request: Request) {
   const storageKey = String(formData.get("storageKey") ?? "").trim();
   const mimeType = String(formData.get("mimeType") ?? "").trim();
 
-  const author = await prisma.user.findFirst({
-    orderBy: { createdAt: "asc" },
-  });
-
-  if (!author) {
-    return NextResponse.json(
-      { error: "Aucun utilisateur auteur n'est disponible." },
-      { status: 400 }
-    );
-  }
-
   if (!title || !fileName || !storageKey) {
     return NextResponse.json(
       { error: "Les champs obligatoires sont incomplets." },
@@ -56,7 +48,7 @@ export async function POST(request: Request) {
       storageKey,
       mimeType: mimeType || null,
       status: DocumentStatus.BROUILLON,
-      authorId: author.id,
+      authorId: authorization.session.userId,
     },
   });
 

@@ -1,18 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("audit.gerer");
+  if (!authorization.ok) return authorization.response;
   const formData = await request.formData();
 
   const action = String(formData.get("action") || "");
 
   if (action === "create") {
-    const userId = String(formData.get("userId") || "");
     const auditAction = String(formData.get("auditAction") || "");
     const entity = String(formData.get("entity") || "");
     const entityId = String(formData.get("entityId") || "");
-    const ipAddress = String(formData.get("ipAddress") || "");
     const metadataText = String(formData.get("metadata") || "");
 
     if (!auditAction || !entity) {
@@ -33,11 +34,10 @@ export async function POST(request: Request) {
 
     await prisma.auditLog.create({
       data: {
-        userId: userId || undefined,
+        userId: authorization.session.userId,
         action: auditAction,
         entity,
         entityId: entityId || undefined,
-        ipAddress: ipAddress || undefined,
         metadata,
       },
     });

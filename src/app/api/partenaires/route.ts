@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
+  const authorization = await authorizeApi("partenaires.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const formData = await request.formData();
 
@@ -44,6 +47,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const authorization = await authorizeApi("partenaires.gerer");
+  if (!authorization.ok) return authorization.response;
   try {
     const { id, status } = await request.json();
 

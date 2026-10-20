@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { hasPermission } from "@/lib/permissions";
+import { authorizeApi } from "@/lib/permissions";
 
 export async function POST(request: Request) {
-  if (!(await hasPermission("securite.gerer"))) {
-    return NextResponse.json(
-      { error: "Accès refusé." },
-      { status: 403 }
-    );
-  }
+  const authorization = await authorizeApi("securite.gerer");
+  if (!authorization.ok) return authorization.response;
 
   const formData = await request.formData();
   const action = String(formData.get("action") ?? "");

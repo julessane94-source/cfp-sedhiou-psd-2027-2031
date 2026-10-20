@@ -1,10 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import NotificationActions from "@/components/NotificationActions";
+import { requireAuth } from "@/lib/require-auth";
+import { hasPermission } from "@/lib/permissions";
+
+export const dynamic = "force-dynamic";
 
 export default async function NotificationsPage() {
-  const notifications = await prisma.notification.findMany({
-    orderBy: { createdAt: "desc" },
-  });
+  const session = await requireAuth();
+  const [notifications, canManage] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    hasPermission("notifications.gerer"),
+  ]);
 
   const total = notifications.length;
   const nonLues = notifications.filter((n) => !n.read).length;
@@ -49,7 +58,7 @@ export default async function NotificationsPage() {
         </div>
       </section>
 
-      <section className="ui-card">
+      {canManage && <section className="ui-card">
         <h2>Nouvelle notification</h2>
 
         <form
@@ -80,7 +89,7 @@ export default async function NotificationsPage() {
             Envoyer la notification
           </button>
         </form>
-      </section>
+      </section>}
 
       <section className="ui-card">
         <h2>Centre de notifications</h2>

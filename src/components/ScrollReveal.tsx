@@ -20,8 +20,11 @@ export default function ScrollReveal({ children }: { children: ReactNode }) {
       return;
     }
 
-    elements.forEach((element) => {
+    elements.forEach((element, index) => {
       element.classList.add("scroll-reveal");
+      if (element instanceof HTMLElement) {
+        element.style.setProperty("--reveal-delay", `${Math.min(index, 5) * 55}ms`);
+      }
     });
 
     const observer = new IntersectionObserver(

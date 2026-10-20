@@ -18,6 +18,7 @@ import {
   Handshake,
   UserRoundCog,
   UserSearch,
+  UserCog,
 } from "lucide-react";
 
 export type MenuItem = {
@@ -56,6 +57,7 @@ export const navigationGroups: MenuGroup[] = [
       { label: "Documents", href: "/documents", icon: FileText },
       { label: "Notifications", href: "/notifications", icon: Bell },
       { label: "Journal d’audit", href: "/audit", icon: ClipboardCheck },
+      { label: "Utilisateurs", href: "/utilisateurs", icon: UserCog },
     ],
   },
   {

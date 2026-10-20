@@ -65,7 +65,6 @@ const rolePermissions: Record<string, string[]> = {
     "partenaires.view",
     "partenaires.manage",
     "communication.view",
-    "communication.manage",
     "documents.view",
     "documents.manage",
     "notifications.view",
@@ -117,6 +116,13 @@ const rolePermissions: Record<string, string[]> = {
     "documents.view",
     "notifications.view",
   ],
+
+  CELLULE_COM: [
+    "dashboard.view",
+    "communication.view",
+    "communication.manage",
+    "notifications.view",
+  ],
 };
 
 for (const [key, name] of permissions) {
@@ -161,6 +167,13 @@ for (const [roleName, permissionKeys] of Object.entries(rolePermissions)) {
   }
 }
 
-console.log("Permissions et droits des 6 rôles configurés.");
+await prisma.rolePermission.deleteMany({
+  where: {
+    permission: { key: "communication.manage" },
+    role: { name: { notIn: ["DIRECTEUR", "CELLULE_COM"] } },
+  },
+});
+
+console.log("Permissions et droits des rôles configurés.");
 
 await prisma.$disconnect();

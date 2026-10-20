@@ -1,6 +1,7 @@
 import { jwtVerify } from "jose";
 import { NextResponse, type NextRequest } from "next/server";
 import { normalizeRole, roleRoutes } from "@/lib/role-routes";
+import { prisma } from "@/lib/prisma";
 
 const SESSION_COOKIE = "cfp_session";
 const PUBLIC_PATHS = new Set(["/", "/connexion"]);
@@ -44,6 +45,7 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const secret = process.env.SESSION_SECRET;
   let session: SessionPayload | null = null;
+  let identityCheckFailed = false;
 
   if (token && secret) {
     try {
@@ -56,9 +58,37 @@ export async function proxy(request: NextRequest) {
         roleId: payload.roleId,
         role: payload.role,
       };
+
     } catch {
       session = null;
     }
+
+    if (
+      session &&
+      typeof session.userId === "string" &&
+      typeof session.roleId === "string"
+    ) {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { status: true, roleId: true, role: { select: { name: true } } },
+        });
+        if (!user || user.status !== "ACTIVE" || user.roleId !== session.roleId) {
+          session = null;
+        } else {
+          session.role = user.role.name;
+        }
+      } catch {
+        session = null;
+        identityCheckFailed = true;
+      }
+    }
+  }
+
+  if (identityCheckFailed && pathname !== "/" && pathname !== "/connexion") {
+    return isApiPath(pathname)
+      ? NextResponse.json({ error: "Service d’authentification temporairement indisponible." }, { status: 503 })
+      : new NextResponse("Service d’authentification temporairement indisponible.", { status: 503 });
   }
 
   if (PUBLIC_PATHS.has(pathname)) {
@@ -97,6 +127,10 @@ export async function proxy(request: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+function isApiPath(pathname: string) {
+  return pathname.startsWith("/api/");
 }
 
 export const config = {

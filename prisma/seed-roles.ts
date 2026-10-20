@@ -15,6 +15,7 @@ const roles = [
   ["CHEF_TRAVAUX", "Gestion administrative des formations, apprenants et stages"],
   ["SURVEILLANT", "Suivi administratif et surveillance des apprenants"],
   ["FORMATEUR", "Accès administratif aux données nécessaires aux formateurs"],
+  ["CELLULE_COM", "Gestion des communications et informations du CFP"],
 ];
 
 for (const [name, description] of roles) {
