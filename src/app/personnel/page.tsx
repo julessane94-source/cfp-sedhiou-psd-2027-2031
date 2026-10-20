@@ -4,13 +4,18 @@ import CreaCaiAccess from "./cai-access";
 export const dynamic = "force-dynamic";
 
 export default async function PersonnelPage() {
-  const [agents, services] = await Promise.all([
+  const [agents, services, roles] = await Promise.all([
     prisma.agent.findMany({
-      include: { service: true },
+      include: { service: true, user: { select: { email: true, role: { select: { name: true } } } } },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
     prisma.service.findMany({
       orderBy: { name: "asc" },
+    }),
+    prisma.role.findMany({
+      where: { name: { not: "DIRECTEUR" } },
+      orderBy: { name: "asc" },
+      select: { name: true, description: true },
     }),
   ]);
 
@@ -63,8 +68,9 @@ export default async function PersonnelPage() {
 
         <section className="rounded-xl bg-white p-5 shadow">
           <h2 className="text-xl font-bold">
-            Nouvel agent
+            Nouvel agent et compte utilisateur
           </h2>
+          <p className="mt-2 text-sm text-slate-600">Chaque membre du personnel reçoit un identifiant et un rôle d’accès à la plateforme.</p>
 
           <form
             action="/api/personnel"
@@ -128,7 +134,23 @@ export default async function PersonnelPage() {
             <input
               name="email"
               type="email"
-              placeholder="E-mail"
+              required
+              placeholder="E-mail de connexion"
+              className="rounded-lg border p-3"
+            />
+
+            <select name="roleName" required defaultValue="" className="rounded-lg border p-3">
+              <option value="" disabled>Rôle utilisateur</option>
+              {roles.map((role) => <option key={role.name} value={role.name}>{role.name.replaceAll("_", " ")}</option>)}
+            </select>
+
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={12}
+              autoComplete="new-password"
+              placeholder="Mot de passe initial (12 caractères minimum)"
               className="rounded-lg border p-3"
             />
 
@@ -161,7 +183,7 @@ export default async function PersonnelPage() {
                   <th className="p-3">Fonction</th>
                   <th className="p-3">Service</th>
                   <th className="p-3">Contrat</th>
-                  <th className="p-3">Accès CAI</th>
+                  <th className="p-3">Compte utilisateur</th>
                 </tr>
               </thead>
 
@@ -184,14 +206,16 @@ export default async function PersonnelPage() {
                       {agent.contractType ?? "Non renseigné"}
                     </td>
                     <td className="p-3">
-                      {agent.service?.name.toLocaleLowerCase().includes("cai") ? (
-                        <CreaCaiAccess agent={{
+                      <CreaCaiAccess
+                        agent={{
                           id: agent.id,
-                          name: `${agent.firstName} ${agent.lastName}`,
+                          name: agent.firstName + " " + agent.lastName,
                           hasAccount: Boolean(agent.userId),
-                        }} />
-                      ) : "—"}
-                    </td>
+                          email: agent.user?.email ?? agent.email ?? "",
+                          roleName: agent.user?.role?.name ?? "",
+                        }}
+                        roles={roles}
+                      />                    </td>
                   </tr>
                 ))}
               </tbody>
