@@ -119,6 +119,7 @@ async function main() {
     console.log(`✓ ${role.name} configuré`);
   }
 
+  for (const role of roles) {
   if (role.name !== "DIRECTEUR" && role.name !== "CELLULE_COM") {
     const manageCommunication = await prisma.permission.findUnique({ where: { key: "communication.gerer" } });
     if (manageCommunication) {
@@ -126,6 +127,8 @@ async function main() {
         where: { roleId: role.id, permissionId: manageCommunication.id },
       });
     }
+  }
+
   }
 
   console.log("RBAC configuré avec succès.");
