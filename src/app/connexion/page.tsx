@@ -189,7 +189,7 @@ export default function ConnexionPage() {
       </section>
       <footer className="login-page-footer">
         <span>© {new Date().getFullYear()} CFP Sédhiou</span>
-        <span>Plateforme administrative et pédagogique</span>
+        <span>Plateforme administrative et financière</span>
       </footer>
     </main>
   );

@@ -29,7 +29,7 @@ const droits: Record<string, string[]> = {
     "insertion.voir", "insertion.gerer",
     "entrepreneuriat.voir", "entrepreneuriat.gerer",
     "partenaires.voir", "partenaires.gerer",
-    "communication.voir", "communication.gerer",
+    "communication.voir",
     "documents.voir", "documents.gerer",
     "notifications.voir", "notifications.gerer",
   ],
@@ -37,9 +37,6 @@ const droits: Record<string, string[]> = {
   COMPTABLE_MATIERES: [
     "dashboard.voir",
     "patrimoine.voir", "patrimoine.gerer",
-    "finances.voir",
-    "documents.voir",
-    "notifications.voir",
   ],
 
   CHEF_TRAVAUX: [
@@ -52,6 +49,7 @@ const droits: Record<string, string[]> = {
     "partenaires.voir",
     "documents.voir",
     "notifications.voir",
+    "planning.voir", "planning.gerer",
   ],
 
   SURVEILLANT: [
@@ -61,6 +59,7 @@ const droits: Record<string, string[]> = {
     "stages.voir",
     "documents.voir",
     "notifications.voir",
+    "absences.voir", "absences.gerer",
   ],
 
   FORMATEUR: [

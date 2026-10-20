@@ -7,6 +7,7 @@ import {
   Building2,
   BookOpenText,
   ClipboardCheck,
+  CalendarDays,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -51,6 +52,8 @@ export const navigationGroups: MenuGroup[] = [
   {
     title: "Administration",
     items: [
+      { label: "Emplois du temps", href: "/planning", icon: CalendarDays },
+      { label: "Demandes d’absence", href: "/absences", icon: ClipboardCheck },
       { label: "Personnel", href: "/personnel", icon: UserRoundCog },
       { label: "Partenaires", href: "/partenaires", icon: Handshake },
       { label: "Communication", href: "/communication", icon: Megaphone },

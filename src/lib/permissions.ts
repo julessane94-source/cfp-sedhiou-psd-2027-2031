@@ -19,6 +19,10 @@ async function roleHasPermission(session: SessionPayload, permissionKey: string)
   if (!role) return false;
   const roleName = normalizeRole(role.name);
   if (roleName === "DIRECTEUR") return true;
+  // Restrict financial data to the Director and the Manager.
+  if (normalizePermissionKey(permissionKey).startsWith("finances.") && roleName !== "GESTIONNAIRE") return false;
+  // The inventory clerk manages assets; the Manager can also inspect the inventory.
+  if (normalizePermissionKey(permissionKey).startsWith("patrimoine.") && !["GESTIONNAIRE", "COMPTABLE_MATIERES"].includes(roleName)) return false;
   if (roleName === "CAI_INSERTION" && normalizePermissionKey(permissionKey) === "insertion.manage") return true;
   if (normalizePermissionKey(permissionKey) === "communication.manage" && roleName !== "CELLULE_COM") return false;
 

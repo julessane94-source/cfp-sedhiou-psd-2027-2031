@@ -38,6 +38,10 @@ const permissions = [
   ["documents.manage", "Gérer les documents"],
   ["notifications.view", "Voir les notifications"],
   ["notifications.manage", "Gérer les notifications"],
+  ["planning.view", "Consulter les emplois du temps"],
+  ["planning.manage", "Gérer les emplois du temps"],
+  ["absences.view", "Consulter les demandes d’absence"],
+  ["absences.manage", "Déposer une demande d’absence"],
 ];
 
 const rolePermissions: Record<string, string[]> = {
@@ -75,9 +79,6 @@ const rolePermissions: Record<string, string[]> = {
     "dashboard.view",
     "patrimoine.view",
     "patrimoine.manage",
-    "documents.view",
-    "documents.manage",
-    "notifications.view",
   ],
 
   CHEF_TRAVAUX: [
@@ -98,6 +99,8 @@ const rolePermissions: Record<string, string[]> = {
     "communication.view",
     "documents.view",
     "notifications.view",
+    "planning.view",
+    "planning.manage",
   ],
 
   SURVEILLANT: [
@@ -113,6 +116,16 @@ const rolePermissions: Record<string, string[]> = {
     "apprenants.view",
     "formations.view",
     "stages.view",
+    "documents.view",
+    "notifications.view",
+    "absences.view",
+    "absences.manage",
+  ],
+
+  CAI_INSERTION: [
+    "dashboard.view",
+    "insertion.view",
+    "insertion.manage",
     "documents.view",
     "notifications.view",
   ],
@@ -142,15 +155,15 @@ for (const [roleName, permissionKeys] of Object.entries(rolePermissions)) {
     throw new Error(`Rôle introuvable : ${roleName}`);
   }
 
-  for (const key of permissionKeys) {
-    const permission = await prisma.permission.findUnique({
-      where: { key },
-    });
-
-    if (!permission) {
-      throw new Error(`Permission introuvable : ${key}`);
-    }
-
+  const allowedPermissions = await prisma.permission.findMany({
+    where: { key: { in: permissionKeys } },
+    select: { id: true, key: true },
+  });
+  if (allowedPermissions.length !== permissionKeys.length) {
+    const found = new Set(allowedPermissions.map((permission) => permission.key));
+    throw new Error(`Permissions introuvables pour ${roleName} : ${permissionKeys.filter((key) => !found.has(key)).join(", ")}`);
+  }
+  for (const permission of allowedPermissions) {
     await prisma.rolePermission.upsert({
       where: {
         roleId_permissionId: {
@@ -165,6 +178,13 @@ for (const [roleName, permissionKeys] of Object.entries(rolePermissions)) {
       },
     });
   }
+
+  await prisma.rolePermission.deleteMany({
+    where: {
+      roleId: role.id,
+      permissionId: { notIn: allowedPermissions.map((permission) => permission.id) },
+    },
+  });
 }
 
 await prisma.rolePermission.deleteMany({

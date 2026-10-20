@@ -1,0 +1,24 @@
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+const dateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Africa/Dakar" });
+export const dynamic = "force-dynamic";
+
+export default async function AbsencesPage({ searchParams }: { searchParams: Promise<{ success?: string }> }) {
+  const session = await getSession();
+  if (!session) redirect("/connexion");
+  if (!["DIRECTEUR", "FORMATEUR"].includes(session.role)) redirect("/dashboard");
+  const { success } = await searchParams;
+  const requests = await prisma.absenceRequest.findMany({
+    where: session.role === "DIRECTEUR" ? undefined : { userId: session.userId },
+    include: { requester: { select: { firstName: true, lastName: true, email: true } }, reviewer: { select: { firstName: true, lastName: true } } },
+    orderBy: [{ status: "asc" }, { startDate: "asc" }],
+  });
+  return <main className="mx-auto min-h-screen max-w-6xl space-y-8 p-5 md:p-8">
+    <header className="rounded-3xl bg-gradient-to-r from-rose-950 via-slate-900 to-orange-950 p-8 text-white shadow-xl"><p className="text-xs font-bold uppercase tracking-[.22em] text-orange-200">Personnel · Autorisation</p><h1 className="mt-3 text-3xl font-black md:text-4xl">Demandes d’absence</h1><p className="mt-3 text-slate-300">Les formateurs transmettent leur demande au Directeur, qui l’approuve ou la refuse.</p></header>
+    {success && <p className="rounded-xl bg-emerald-50 p-4 text-emerald-800">{success === "submitted" ? "Votre demande a été transmise au Directeur." : "La demande a été traitée."}</p>}
+    {session.role === "FORMATEUR" && <form action="/api/absences" method="post" className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="text-xl font-bold">Déposer une demande</h2><div className="grid gap-4 md:grid-cols-2"><label className="text-sm font-semibold">Premier jour d’absence<input type="date" name="startDate" required className="mt-1 w-full rounded-lg border p-3" /></label><label className="text-sm font-semibold">Dernier jour d’absence<input type="date" name="endDate" required className="mt-1 w-full rounded-lg border p-3" /></label></div><label className="block text-sm font-semibold">Motif<textarea name="reason" required minLength={5} maxLength={2000} rows={4} className="mt-1 w-full rounded-lg border p-3" placeholder="Expliquez le motif de votre demande." /></label><button className="rounded-xl bg-rose-800 px-5 py-3 font-bold text-white hover:bg-rose-700">Transmettre au Directeur</button></form>}
+    <section className="space-y-4"><h2 className="text-2xl font-bold">{session.role === "DIRECTEUR" ? "Demandes à examiner" : "Mes demandes"}</h2>{requests.length === 0 ? <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">Aucune demande d’absence pour le moment.</p> : requests.map((request) => <article key={request.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-bold">{request.requester.firstName} {request.requester.lastName}</p><p className="mt-1 text-sm text-slate-500">{request.requester.email}</p></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${request.status === "EN_ATTENTE" ? "bg-amber-100 text-amber-900" : request.status === "APPROUVEE" ? "bg-emerald-100 text-emerald-900" : "bg-rose-100 text-rose-900"}`}>{request.status.replace("_", " ")}</span></div><p className="mt-4 text-sm font-semibold text-slate-700">Du {dateFormat.format(request.startDate)} au {dateFormat.format(request.endDate)}</p><p className="mt-3 whitespace-pre-wrap leading-7 text-slate-700">{request.reason}</p>{request.decisionNote && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Note du Directeur : {request.decisionNote}</p>}{request.reviewer && <p className="mt-2 text-xs text-slate-500">Décision par {request.reviewer.firstName} {request.reviewer.lastName}</p>}{session.role === "DIRECTEUR" && request.status === "EN_ATTENTE" && <form action="/api/absences" method="post" className="mt-5 space-y-3 border-t pt-4"><input type="hidden" name="action" value="decision"/><input type="hidden" name="id" value={request.id}/><label className="block text-sm font-semibold">Note (facultatif)<input name="note" maxLength={500} className="mt-1 w-full rounded-lg border p-3" placeholder="Précision à communiquer au formateur" /></label><div className="flex flex-wrap gap-3"><button name="decision" value="APPROUVEE" className="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-600">Approuver</button><button name="decision" value="REFUSEE" className="rounded-lg border border-rose-300 px-4 py-2 font-semibold text-rose-800 hover:bg-rose-50">Refuser</button></div></form>}</article>)}</section>
+  </main>;
+}

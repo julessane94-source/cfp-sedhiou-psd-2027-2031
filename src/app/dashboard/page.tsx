@@ -35,8 +35,8 @@ export default async function DashboardPage() {
     prisma.learner.count(),
     prisma.training.count(),
     prisma.asset.count(),
-    prisma.budget.count(),
-    prisma.financialOperation.count(),
+    ["DIRECTEUR", "GESTIONNAIRE"].includes(role) ? prisma.budget.count() : Promise.resolve(0),
+    ["DIRECTEUR", "GESTIONNAIRE"].includes(role) ? prisma.financialOperation.count() : Promise.resolve(0),
     prisma.securityIncident.count(),
     prisma.document.count(),
     prisma.notification.count({ where: { read: false } }),
@@ -56,19 +56,16 @@ export default async function DashboardPage() {
   const roleStats: Record<string, typeof allStats> = {
     DIRECTEUR: allStats,
     GESTIONNAIRE: [
-      allStats[1],
-      allStats[2],
+      allStats[3],
       allStats[4],
       allStats[5],
       allStats[7],
     ],
     COMPTABLE_MATIERES: [
       allStats[3],
-      allStats[4],
     ],
     CHEF_TRAVAUX: [
-      allStats[1],
-      allStats[2],
+      { title: "Emplois du temps", value: 0, icon: "🗓️", href: "/planning" },
     ],
     SURVEILLANT: [
       allStats[1],

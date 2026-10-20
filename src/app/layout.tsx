@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | CFP Sédhiou",
   },
   description:
-    "Plateforme de gestion administrative, pédagogique et financière du CFP Sédhiou.",
+    "Plateforme de gestion administrative et financière du CFP Sédhiou.",
 };
 
 // Les vues consultent les données opérationnelles de PostgreSQL à chaque requête.
