@@ -25,6 +25,7 @@ export const roleRoutes: Record<string, string[]> = {
   FORMATEUR: [
     "/dashboard", "/formations", "/apprenants", "/stages", "/documents",
   ],
+  CAI_INSERTION: ["/insertion"],
 };
 
 export function normalizeRole(role: string) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GraduationCap, Users, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import styles from "./formations.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function FormationsPage() {
 
           <Link
             href="/formations/admin"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+            className={styles.adminAction}
           >
             Administration
             <ArrowRight className="h-4 w-4" />
@@ -109,7 +110,7 @@ export default async function FormationsPage() {
 
               <Link
                 href="/formations/admin"
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                className={styles.addAction}
               >
                 Ajouter une formation
                 <ArrowRight className="h-4 w-4" />

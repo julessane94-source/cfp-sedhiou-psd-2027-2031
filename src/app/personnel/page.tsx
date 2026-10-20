@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import CreaCaiAccess from "./cai-access";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function PersonnelPage() {
 
         <section className="rounded-xl bg-white p-5 shadow">
           <h2 className="text-xl font-bold">
-            Ajouter un service
+            Créer une cellule ou un service
           </h2>
 
           <form
@@ -41,7 +42,7 @@ export default async function PersonnelPage() {
             <input
               name="name"
               required
-              placeholder="Nom du service"
+              placeholder="Ex. CAI — Cellule d’appui à l’insertion"
               className="rounded-lg border p-3"
             />
 
@@ -160,6 +161,7 @@ export default async function PersonnelPage() {
                   <th className="p-3">Fonction</th>
                   <th className="p-3">Service</th>
                   <th className="p-3">Contrat</th>
+                  <th className="p-3">Accès CAI</th>
                 </tr>
               </thead>
 
@@ -180,6 +182,15 @@ export default async function PersonnelPage() {
                     </td>
                     <td className="p-3">
                       {agent.contractType ?? "Non renseigné"}
+                    </td>
+                    <td className="p-3">
+                      {agent.service?.name.toLocaleLowerCase().includes("cai") ? (
+                        <CreaCaiAccess agent={{
+                          id: agent.id,
+                          name: `${agent.firstName} ${agent.lastName}`,
+                          hasAccount: Boolean(agent.userId),
+                        }} />
+                      ) : "—"}
                     </td>
                   </tr>
                 ))}

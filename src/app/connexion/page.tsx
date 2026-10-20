@@ -37,7 +37,7 @@ export default function ConnexionPage() {
         return;
       }
 
-      window.location.href = "/dashboard";
+      window.location.href = data.user?.home ?? "/dashboard";
     } catch {
       setError("Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.");
     } finally {

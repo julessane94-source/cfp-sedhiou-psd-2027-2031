@@ -59,9 +59,9 @@ export async function POST(request: Request) {
       const level = String(formData.get("level") ?? "").trim();
       const duration = String(formData.get("duration") ?? "").trim();
 
-      if (!code || !title) {
+      if (!code || !title || !category || !level) {
         throw new Error(
-          "Le code et le nom de la formation sont obligatoires."
+          "Le code, le nom, la filière et le niveau de la formation sont obligatoires."
         );
       }
 

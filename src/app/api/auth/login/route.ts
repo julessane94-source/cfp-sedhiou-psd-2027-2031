@@ -58,6 +58,7 @@ export async function POST(request: Request) {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role.name,
+        home: user.role.name === "CAI_INSERTION" ? "/insertion" : "/dashboard",
       },
     });
   } catch (error) {

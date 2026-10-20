@@ -21,6 +21,24 @@ export default async function AdminFormations() {
     }),
   ]);
 
+  const existingCategories = Array.from(
+    new Set(
+      trainings
+        .map((training) => training.category?.trim())
+        .filter((category): category is string => Boolean(category))
+    )
+  );
+  const existingLevels = Array.from(
+    new Set(
+      [
+        ...trainings.map((training) => training.level?.trim()),
+        ...learners.flatMap((learner) =>
+          learner.enrollments.map((enrollment) => enrollment.level?.trim())
+        ),
+      ].filter((level): level is string => Boolean(level))
+    )
+  );
+
   return (
     <main className="min-h-screen bg-slate-50 p-4">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -44,35 +62,70 @@ export default async function AdminFormations() {
           <form
             action="/api/formations/admin"
             method="post"
-            className="grid gap-3 md:grid-cols-4"
+            className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-3"
           >
             <input type="hidden" name="action" value="formation" />
 
-            <input
-              name="code"
-              placeholder="Code"
-              required
-              className="rounded border p-3"
-            />
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+              Code de la formation
+              <input
+                name="code"
+                placeholder="Ex. INFO-01"
+                required
+                className="rounded-lg border border-slate-300 bg-white p-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
 
-            <input
-              name="title"
-              placeholder="Nom de la formation"
-              required
-              className="rounded border p-3"
-            />
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+              Nom de la formation
+              <input
+                name="title"
+                placeholder="Ex. Développement numérique"
+                required
+                className="rounded-lg border border-slate-300 bg-white p-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
 
-            <input
-              name="category"
-              placeholder="Filière"
-              className="rounded border p-3"
-            />
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+              Filière
+              <input
+                name="category"
+                list="formation-filieres"
+                placeholder="Sélectionner ou saisir une filière"
+                required
+                className="rounded-lg border border-slate-300 bg-white p-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+              />
+              <datalist id="formation-filieres">
+                {existingCategories.map((category) => (
+                  <option key={category} value={category} />
+                ))}
+              </datalist>
+            </label>
 
-            <input
-              name="duration"
-              placeholder="Durée"
-              className="rounded border p-3"
-            />
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+              Niveau proposé
+              <input
+                name="level"
+                list="formation-niveaux"
+                placeholder="Ex. 1ère année, CAP 1, BT 1"
+                required
+                className="rounded-lg border border-slate-300 bg-white p-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+              />
+              <datalist id="formation-niveaux">
+                {existingLevels.map((level) => (
+                  <option key={level} value={level} />
+                ))}
+              </datalist>
+            </label>
+
+            <label className="grid gap-1.5 text-sm font-semibold text-slate-700">
+              Durée (facultative)
+              <input
+                name="duration"
+                placeholder="Ex. 2 ans"
+                className="rounded-lg border border-slate-300 bg-white p-3 font-normal outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
 
             <button className={styles.primaryAction}>
               Ajouter
@@ -314,9 +367,11 @@ export default async function AdminFormations() {
                         className="rounded border p-3"
                       >
                         <option value="">Niveau</option>
-                        <option value="1ère année">1ère année</option>
-                        <option value="2ème année">2ème année</option>
-                        <option value="3ème année">3ème année</option>
+                        {existingLevels.map((level) => (
+                          <option key={level} value={level}>
+                            {level}
+                          </option>
+                        ))}
                       </select>
 
                       <button className="rounded bg-emerald-600 p-3 font-semibold text-white">

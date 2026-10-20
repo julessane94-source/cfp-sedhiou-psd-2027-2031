@@ -90,7 +90,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
     }
 
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const destination = normalizeRole(session.role) === "CAI_INSERTION"
+      ? "/insertion"
+      : "/dashboard";
+    return NextResponse.redirect(new URL(destination, request.url));
   }
 
   return NextResponse.next();

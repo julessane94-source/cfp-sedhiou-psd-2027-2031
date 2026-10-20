@@ -23,6 +23,13 @@ export async function hasPermission(
 
   if (!role) return false;
 
+  if (
+    role.name === "CAI_INSERTION" &&
+    permissionKey === "insertion.gerer"
+  ) {
+    return true;
+  }
+
   return role.permissions.some(
     ({ permission }) => permission.key === permissionKey
   );

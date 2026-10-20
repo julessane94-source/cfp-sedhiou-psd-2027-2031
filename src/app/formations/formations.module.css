@@ -1,0 +1,62 @@
+.adminAction,
+.addAction {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 0.75rem 1.125rem;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 14%);
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.adminAction {
+  background: linear-gradient(135deg, #123e63, #0f4c81);
+}
+
+.adminAction:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #0b355a, #0c416f);
+  box-shadow: 0 12px 24px rgb(15 76 129 / 24%);
+  transform: translateY(-2px);
+}
+
+.addAction {
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  box-shadow: 0 8px 18px rgb(21 128 61 / 18%);
+}
+
+.addAction:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #166534, #15803d);
+  box-shadow: 0 12px 24px rgb(21 128 61 / 26%);
+  transform: translateY(-2px);
+}
+
+.adminAction:focus-visible,
+.addAction:focus-visible {
+  outline: 3px solid #fbbf24;
+  outline-offset: 3px;
+}
+
+.adminAction:active,
+.addAction:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adminAction,
+  .addAction {
+    transition: none;
+  }
+}
