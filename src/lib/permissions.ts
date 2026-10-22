@@ -19,6 +19,12 @@ async function roleHasPermission(session: SessionPayload, permissionKey: string)
   if (!role) return false;
   const roleName = normalizeRole(role.name);
   if (roleName === "DIRECTEUR") return true;
+
+  const expectedKey = normalizePermissionKey(permissionKey);
+  // These operational rights are defined by the role policy and must not depend
+  // on a database permission seed having run during deployment.
+  if (roleName === "CHEF_TRAVAUX" && ["planning.view", "planning.manage"].includes(expectedKey)) return true;
+  if (roleName === "FORMATEUR" && ["absences.view", "absences.manage"].includes(expectedKey)) return true;
   // Restrict financial data to the Director and the Manager.
   if (normalizePermissionKey(permissionKey).startsWith("finances.") && roleName !== "GESTIONNAIRE") return false;
   // The inventory clerk manages assets; the Manager can also inspect the inventory.
@@ -26,7 +32,6 @@ async function roleHasPermission(session: SessionPayload, permissionKey: string)
   if (roleName === "CAI_INSERTION" && normalizePermissionKey(permissionKey) === "insertion.manage") return true;
   if (normalizePermissionKey(permissionKey) === "communication.manage" && roleName !== "CELLULE_COM") return false;
 
-  const expectedKey = normalizePermissionKey(permissionKey);
   return role.permissions.some(({ permission }) => normalizePermissionKey(permission.key) === expectedKey);
 }
 
