@@ -3313,3 +3313,93 @@ tbody tr:hover {
   }
 }
 
+
+
+/* Navigation persistante et mouvements plus fluides */
+@media (max-width: 900px) {
+  .mobile-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 3000 !important;
+    background: rgba(255, 255, 255, .86) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .72);
+    box-shadow: 0 8px 28px rgba(27, 20, 20, .08);
+    backdrop-filter: saturate(1.4) blur(18px);
+    -webkit-backdrop-filter: saturate(1.4) blur(18px);
+  }
+
+  .sidebar {
+    transition:
+      transform .42s cubic-bezier(.22, 1, .36, 1),
+      box-shadow .42s cubic-bezier(.22, 1, .36, 1) !important;
+    box-shadow: 18px 0 55px rgba(28, 10, 12, .24);
+    overscroll-behavior: contain;
+  }
+
+  .sidebar-overlay {
+    opacity: 0;
+    transition: opacity .32s ease, backdrop-filter .32s ease !important;
+    backdrop-filter: blur(0);
+  }
+
+  .sidebar-overlay.is-visible {
+    opacity: 1;
+    backdrop-filter: blur(5px);
+  }
+
+  .sidebar.is-open .sidebar-brand,
+  .sidebar.is-open .sidebar-user,
+  .sidebar.is-open .sidebar-nav,
+  .sidebar.is-open .sidebar-account,
+  .sidebar.is-open .sidebar-footer {
+    animation: menuContentEnter .42s cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  .sidebar.is-open .sidebar-user { animation-delay: 35ms; }
+  .sidebar.is-open .sidebar-nav { animation-delay: 70ms; }
+  .sidebar.is-open .sidebar-account { animation-delay: 105ms; }
+  .sidebar.is-open .sidebar-footer { animation-delay: 140ms; }
+
+  .nav-link {
+    position: relative;
+    overflow: hidden;
+    transition:
+      color .22s ease,
+      background-color .22s ease,
+      transform .28s cubic-bezier(.22, 1, .36, 1),
+      box-shadow .22s ease !important;
+  }
+
+  .nav-link.is-active {
+    background: linear-gradient(100deg, rgba(255,255,255,.2), rgba(255,255,255,.09));
+    color: #fff;
+    box-shadow: inset 3px 0 #f0d58a, 0 8px 22px rgba(34, 8, 10, .12);
+  }
+
+  .nav-link.is-active .nav-icon {
+    color: #f4dc99;
+    transform: scale(1.06);
+  }
+
+  .nav-icon {
+    transition: transform .25s cubic-bezier(.22, 1, .36, 1), color .2s ease;
+  }
+}
+
+@keyframes menuContentEnter {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-overlay,
+  .sidebar.is-open .sidebar-brand,
+  .sidebar.is-open .sidebar-user,
+  .sidebar.is-open .sidebar-nav,
+  .sidebar.is-open .sidebar-account,
+  .sidebar.is-open .sidebar-footer {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}
