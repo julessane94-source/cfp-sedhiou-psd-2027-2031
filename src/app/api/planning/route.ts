@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const startTime = String(form.get("startTime") ?? "");
     const endTime = String(form.get("endTime") ?? "");
     const room = String(form.get("room") ?? "").trim();
+    const className = String(form.get("className") ?? "").trim();
     const subject = String(form.get("subject") ?? "").trim();
     const userId = String(form.get("userId") ?? "").trim();
     if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) || startTime >= endTime || !room || room.length > 100 || !subject || subject.length > 160 || !userId || userId.length > 100) {
