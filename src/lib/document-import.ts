@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import mammoth from "mammoth";
-import pdf from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 
 export type ImportRow = Record<string, string>;
 
@@ -10,7 +10,8 @@ const aliases: Record<string, string[]> = {
   endTime: ["fin", "heure fin", "heure de fin", "fin cours", "end", "end time"],
   room: ["salle", "salle de cours", "room", "local"],
   trainer: ["formateur", "formateur trice", "enseignant", "professeur", "prof", "trainer", "instructor"],
-  className: ["classe", "classe de cours", "groupe", "section", "class", "class name"],\n  subject: ["cours", "matiere", "module", "intitule", "formation", "subject"],
+  className: ["classe", "classe de cours", "groupe", "section", "class", "class name"],
+  subject: ["cours", "matiere", "module", "intitule", "formation", "subject"],
   firstName: ["prenom", "prenoms", "first name", "given name"],
   lastName: ["nom", "nom de famille", "last name", "surname"],
   phone: ["telephone", "tel", "phone", "contact"],
@@ -68,9 +69,14 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
     return rowsFromText(result.value, kind);
   }
   if (name.endsWith(".pdf")) {
-    const result = await pdf(buffer);
-    if (!result.text.trim()) throw new Error("Ce PDF ne contient pas de texte sélectionnable. Les PDF scannés nécessitent une reconnaissance OCR.");
-    return rowsFromText(result.text, kind);
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const result = await parser.getText();
+      if (!result.text.trim()) throw new Error("Ce PDF ne contient pas de texte sélectionnable. Les PDF scannés nécessitent une reconnaissance OCR.");
+      return rowsFromText(result.text, kind);
+    } finally {
+      await parser.destroy();
+    }
   }
   throw new Error("Format non pris en charge. Utilisez Excel (.xlsx), Word (.docx) ou PDF avec texte sélectionnable.");
 }
