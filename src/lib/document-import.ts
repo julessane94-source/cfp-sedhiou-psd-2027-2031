@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import mammoth from "mammoth";
 import pdf from "pdf-parse";
 
@@ -49,10 +49,14 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
   if (file.size > 10 * 1024 * 1024) throw new Error("Le fichier dépasse la limite de 10 Mo.");
   const name = file.name.toLowerCase();
   const buffer = Buffer.from(await file.arrayBuffer());
-  if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
-    const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return rowsFromMatrix(XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" }) as unknown[][], kind);
+  if (name.endsWith(".xlsx")) {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return [];
+    const matrix: unknown[][] = [];
+    sheet.eachRow({ includeEmpty: false }, (row) => matrix.push(row.values.slice(1).map((cell) => cell instanceof Date ? cell.toISOString().slice(0, 10) : String(cell ?? ""))));
+    return rowsFromMatrix(matrix, kind);
   }
   if (name.endsWith(".docx")) {
     const result = await mammoth.extractRawText({ buffer });
@@ -63,5 +67,5 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
     if (!result.text.trim()) throw new Error("Ce PDF ne contient pas de texte sélectionnable. Les PDF scannés nécessitent une reconnaissance OCR.");
     return rowsFromText(result.text, kind);
   }
-  throw new Error("Format non pris en charge. Utilisez Excel (.xlsx/.xls), Word (.docx) ou PDF avec texte sélectionnable.");
+  throw new Error("Format non pris en charge. Utilisez Excel (.xlsx), Word (.docx) ou PDF avec texte sélectionnable.");
 }
