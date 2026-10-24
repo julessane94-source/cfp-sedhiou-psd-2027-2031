@@ -96,9 +96,9 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
 
     const year = new Date().getFullYear();
     const prefix = `MAT-${year}-`;
-    const existing = await prisma.learner.findMany({ where: { matricule: { startsWith: prefix } }, select: { matricule: true } });
-    let next = existing.reduce((max, item) => Math.max(max, Number(item.matricule.slice(prefix.length)) || 0), 0) + 1;
     const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.learner.findMany({ where: { matricule: { startsWith: prefix } }, select: { matricule: true } });
+      let next = existing.reduce((max, item) => Math.max(max, Number(item.matricule.slice(prefix.length)) || 0), 0) + 1;
       let imported = 0, skipped = 0;
       for (const row of normalizedRows) {
         const duplicate = await tx.learner.findFirst({ where: row.email ? { email: { equals: row.email, mode: "insensitive" } } : { firstName: { equals: row.firstName, mode: "insensitive" }, lastName: { equals: row.lastName, mode: "insensitive" }, birthDate: parseDate(row.birthDate) ?? undefined } });
@@ -109,7 +109,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
         imported++;
       }
       return { imported, skipped };
-    });
+    }, { isolationLevel: "Serializable" });
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Import impossible.";
