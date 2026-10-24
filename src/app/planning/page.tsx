@@ -58,6 +58,8 @@ export default async function PlanningPage({
 
       {params.success && <p className="rounded-xl bg-emerald-50 p-4 text-emerald-800">Le planning a été mis à jour.</p>}
 
+      <a href="/planning/import" className="inline-flex rounded-xl bg-cyan-800 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-cyan-700">Importer un emploi du temps</a>
+
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-700">Vue en temps réel du planning</p>
