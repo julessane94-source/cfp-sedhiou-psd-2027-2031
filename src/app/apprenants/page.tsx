@@ -75,6 +75,12 @@ export default async function ApprenantsPage({
         >
           + Enregistrer un apprenant
         </a>
+        <a
+          href="/apprenants/import"
+          className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800"
+        >
+          Importer une liste
+        </a>
       </div>
 
       <form
