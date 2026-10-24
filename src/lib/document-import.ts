@@ -61,11 +61,26 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
     const sheet = workbook.worksheets[0];
     if (!sheet) return [];
     const matrix: unknown[][] = [];
-    sheet.eachRow({ includeEmpty: false }, (row) => matrix.push(row.values.slice(1).map((cell) => cell instanceof Date ? cell.toISOString().slice(0, 10) : String(cell ?? ""))));
+    sheet.eachRow({ includeEmpty: false }, (row) => {
+      const values: unknown[] = [];
+      row.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
+        const value = cell.value;
+        if (value instanceof Date) {
+          values[columnNumber - 1] = value.toISOString().slice(0, 10);
+        } else if (value && typeof value === "object" && "result" in value) {
+          values[columnNumber - 1] = String(value.result ?? "");
+        } else {
+          values[columnNumber - 1] = String(cell.text ?? "");
+        }
+      });
+      matrix.push(values);
+    });
     return rowsFromMatrix(matrix, kind);
   }
   if (name.endsWith(".docx")) {
-    const result = await mammoth.extractRawText({ buffer });
+    // Mammoth's declaration uses a non-generic Node Buffer while modern @types/node
+    // exposes Buffer<ArrayBufferLike>; the runtime value is still a Node Buffer.
+    const result = await mammoth.extractRawText({ buffer: buffer as never });
     return rowsFromText(result.value, kind);
   }
   if (name.endsWith(".pdf")) {
