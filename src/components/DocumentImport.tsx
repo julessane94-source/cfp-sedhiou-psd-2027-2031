@@ -61,12 +61,12 @@ export default function DocumentImport({ kind }: Props) {
     <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Importer depuis un document</h2>
-        <p className="mt-1 text-sm text-slate-600">Excel, Word ou PDF textuel · 10 Mo maximum. Vérifiez les lignes avant l’enregistrement.</p>
+        <p className="mt-1 text-sm text-slate-600">Excel (.xlsx), Word (.docx) ou PDF textuel · 10 Mo maximum. Vérifiez les lignes avant l’enregistrement.</p>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-64 flex-1 text-sm font-semibold text-slate-700">
           Choisir un fichier
-          <input type="file" accept=".xlsx,.xls,.docx,.pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-xl border border-slate-300 p-3 text-sm" />
+          <input type="file" accept=".xlsx,.docx,.pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full rounded-xl border border-slate-300 p-3 text-sm" />
         </label>
         <button type="button" onClick={preview} disabled={!file || busy} className="rounded-xl bg-indigo-800 px-5 py-3 font-bold text-white disabled:opacity-50">{busy ? "Lecture…" : "Lire et prévisualiser"}</button>
       </div>
