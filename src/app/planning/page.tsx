@@ -58,6 +58,8 @@ export default async function PlanningPage({
 
       {params.success && <p className="rounded-xl bg-emerald-50 p-4 text-emerald-800">Le planning a été mis à jour.</p>}
 
+      <a href="/planning/import" className="inline-flex rounded-xl bg-cyan-800 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-cyan-700">Importer un emploi du temps</a>
+
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-700">Vue en temps réel du planning</p>
@@ -113,6 +115,7 @@ export default async function PlanningPage({
                   <div className="mt-4 space-y-3">
                     {courses.map((course) => (
                       <div key={course.id} className="border-t border-emerald-200 pt-3">
+                        {course.className && <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{course.className}</p>}
                         <p className="font-bold text-slate-900">{course.subject}</p>
                         <p className="mt-1 text-sm text-slate-700">
                           {course.instructor.firstName} {course.instructor.lastName}
@@ -141,6 +144,7 @@ export default async function PlanningPage({
             <label className="text-sm font-semibold">Début<input type="time" name="startTime" required className="mt-1 w-full rounded-lg border p-3" /></label>
             <label className="text-sm font-semibold">Fin<input type="time" name="endTime" required className="mt-1 w-full rounded-lg border p-3" /></label>
           </div>
+          <label className="block text-sm font-semibold">Classe / groupe<input name="className" maxLength={100} placeholder="Ex. 1re année Cuisine" className="mt-1 w-full rounded-lg border p-3" /></label>
           <label className="block text-sm font-semibold">Salle<input name="room" required maxLength={100} placeholder="Ex. Salle 2" className="mt-1 w-full rounded-lg border p-3" /></label>
           <label className="block text-sm font-semibold">
             Formateur
@@ -170,6 +174,7 @@ export default async function PlanningPage({
                       <div key={entry.id} className="flex flex-wrap items-center gap-4 p-5">
                         <div className="min-w-32 font-mono font-bold text-indigo-800">{entry.startTime}–{entry.endTime}</div>
                         <div className="min-w-40 flex-1">
+                          {entry.className && <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{entry.className}</p>}
                           <p className="font-bold">{entry.subject}</p>
                           <p className="text-sm text-slate-600">{entry.instructor.firstName} {entry.instructor.lastName}</p>
                         </div>

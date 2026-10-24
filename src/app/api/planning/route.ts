@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const startTime = String(form.get("startTime") ?? "");
     const endTime = String(form.get("endTime") ?? "");
     const room = String(form.get("room") ?? "").trim();
+    const className = String(form.get("className") ?? "").trim();
     const subject = String(form.get("subject") ?? "").trim();
     const userId = String(form.get("userId") ?? "").trim();
     if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) || startTime >= endTime || !room || room.length > 100 || !subject || subject.length > 160 || !userId || userId.length > 100) {
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     const sameDay = await prisma.timetableEntry.findMany({ where: { weekday } });
     const conflict = sameDay.find((entry) => startTime < entry.endTime && endTime > entry.startTime && (entry.room.toLocaleLowerCase() === room.toLocaleLowerCase() || entry.userId === userId));
     if (conflict) return NextResponse.json({ error: conflict.room.toLocaleLowerCase() === room.toLocaleLowerCase() ? "Cette salle est déjà occupée sur ce créneau." : "Ce formateur a déjà un cours sur ce créneau." }, { status: 409 });
-    await prisma.timetableEntry.create({ data: { weekday, startTime, endTime, room, subject, userId } });
+    await prisma.timetableEntry.create({ data: { weekday, startTime, endTime, room, className: className || null, subject, userId } });
     return NextResponse.redirect(new URL("/planning?success=created", request.url), 303);
   } catch (error) {
     console.error("Erreur de création du planning:", error);
