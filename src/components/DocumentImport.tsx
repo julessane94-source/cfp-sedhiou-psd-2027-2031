@@ -6,7 +6,7 @@ type Props = { kind: "planning" | "apprenants" };
 type Row = Record<string, string | number | string[]>;
 
 const labels: Record<string, string> = {
-  weekday: "Jour", startTime: "Début", endTime: "Fin", room: "Salle", trainerName: "Formateur", subject: "Cours / classe",
+  weekday: "Jour", startTime: "Début", endTime: "Fin", room: "Salle", className: "Classe / groupe", trainerName: "Formateur", subject: "Cours / classe",
   firstName: "Prénom", lastName: "Nom", phone: "Téléphone", email: "E-mail", birthDate: "Naissance",
 };
 
@@ -54,7 +54,7 @@ export default function DocumentImport({ kind }: Props) {
   }
 
   const columns = kind === "planning"
-    ? ["weekday", "startTime", "endTime", "room", "trainerName", "subject", "errors"]
+    ? ["weekday", "startTime", "endTime", "room", "className", "trainerName", "subject", "errors"]
     : ["firstName", "lastName", "phone", "email", "birthDate", "errors"];
 
   return (
