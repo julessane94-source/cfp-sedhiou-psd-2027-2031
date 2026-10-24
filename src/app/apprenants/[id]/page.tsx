@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import LearnerProfileEditor from "@/components/LearnerProfileEditor";
 
 export default async function ApprenantDetailPage({
   params,
@@ -7,6 +9,8 @@ export default async function ApprenantDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await getSession();
+  const canEditProfile = Boolean(session && ["DIRECTEUR", "SURVEILLANT"].includes(session.role));
 
   const apprenant = await prisma.learner.findUnique({
     where: { id },
@@ -100,6 +104,15 @@ export default async function ApprenantDetailPage({
                 <strong>{apprenant.integrationYear || "Non renseignée"}</strong>
               </p>
             </div>
+            {canEditProfile && <LearnerProfileEditor
+              id={apprenant.id}
+              firstName={apprenant.firstName}
+              lastName={apprenant.lastName}
+              phone={apprenant.phone || ""}
+              email={apprenant.email || ""}
+              birthDate={apprenant.birthDate?.toISOString().slice(0, 10) || ""}
+              integrationYear={apprenant.integrationYear?.toString() || ""}
+            />}
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
