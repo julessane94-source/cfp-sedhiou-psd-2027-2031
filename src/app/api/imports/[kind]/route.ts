@@ -70,10 +70,12 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
         if (matches.length !== 1) errors.push(matches.length ? "formateur ambigu" : "formateur introuvable");
         return { rowNumber: i + 2, weekday, startTime, endTime, room, subject, userId: matches[0]?.id ?? "", trainerName: matches[0] ? `${matches[0].firstName} ${matches[0].lastName}` : row.trainer, errors };
       });
-      const pool = [...entries.map((e) => ({ weekday: e.weekday, startTime: e.startTime, endTime: e.endTime, room: clean(e.room), userId: e.userId })), ...prepared.filter((r) => !r.errors.length).map((r) => ({ weekday: r.weekday, startTime: r.startTime, endTime: r.endTime, room: clean(r.room), userId: r.userId }))];
-      prepared.forEach((r) => {
+      prepared.forEach((r, index) => {
         if (r.errors.length) return;
-        const duplicate = pool.some((p) => p !== r && p.weekday === r.weekday && r.startTime < p.endTime && r.endTime > p.startTime && (p.room === clean(r.room) || p.userId === r.userId));
+        const overlaps = (p: { weekday: number; startTime: string; endTime: string; room: string; userId: string }) =>
+          p.weekday === r.weekday && r.startTime < p.endTime && r.endTime > p.startTime &&
+          (clean(p.room) === clean(r.room) || p.userId === r.userId);
+        const duplicate = entries.some(overlaps) || prepared.slice(0, index).some((p) => !p.errors.length && overlaps(p));
         if (duplicate) r.errors.push("conflit de salle ou de formateur");
       });
       const invalid = prepared.filter((r) => r.errors.length);
