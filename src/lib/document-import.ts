@@ -57,7 +57,7 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
   const buffer = Buffer.from(await file.arrayBuffer());
   if (name.endsWith(".xlsx")) {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+    await workbook.xlsx.load(buffer as never);
     const sheet = workbook.worksheets[0];
     if (!sheet) return [];
     const matrix: unknown[][] = [];
