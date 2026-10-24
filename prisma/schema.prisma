@@ -68,6 +68,7 @@ model TimetableEntry {
   startTime   String
   endTime     String
   room        String
+  className   String?
   subject     String
   userId      String
   createdAt   DateTime @default(now())
