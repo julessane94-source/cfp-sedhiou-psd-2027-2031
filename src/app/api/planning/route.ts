@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const sameDay = await prisma.timetableEntry.findMany({ where: { weekday } });
     const conflict = sameDay.find((entry) => startTime < entry.endTime && endTime > entry.startTime && (entry.room.toLocaleLowerCase() === room.toLocaleLowerCase() || entry.userId === userId));
     if (conflict) return NextResponse.json({ error: conflict.room.toLocaleLowerCase() === room.toLocaleLowerCase() ? "Cette salle est déjà occupée sur ce créneau." : "Ce formateur a déjà un cours sur ce créneau." }, { status: 409 });
-    await prisma.timetableEntry.create({ data: { weekday, startTime, endTime, room, subject, userId } });
+    await prisma.timetableEntry.create({ data: { weekday, startTime, endTime, room, className: className || null, subject, userId } });
     return NextResponse.redirect(new URL("/planning?success=created", request.url), 303);
   } catch (error) {
     console.error("Erreur de création du planning:", error);
