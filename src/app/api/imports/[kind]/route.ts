@@ -60,7 +60,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
       const prepared = rows.map((row, i) => {
         const weekday = parseWeekday(row.weekday ?? "");
         const startTime = time(row.startTime ?? ""), endTime = time(row.endTime ?? "");
-        const room = row.room?.trim() ?? "", subject = row.subject?.trim() ?? "";
+        const room = row.room?.trim() ?? "", className = row.className?.trim() ?? "", subject = row.subject?.trim() || className;
         const teacher = clean(row.trainer ?? "");
         const matches = trainers.filter((t) => clean(`${t.firstName} ${t.lastName}`) === teacher || clean(t.email) === teacher);
         const errors: string[] = [];
@@ -68,7 +68,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
         if (!startTime || !endTime || startTime >= endTime) errors.push("horaires invalides");
         if (!room || !subject) errors.push("salle ou cours manquant");
         if (matches.length !== 1) errors.push(matches.length ? "formateur ambigu" : "formateur introuvable");
-        return { rowNumber: i + 2, weekday, startTime, endTime, room, subject, userId: matches[0]?.id ?? "", trainerName: matches[0] ? `${matches[0].firstName} ${matches[0].lastName}` : row.trainer, errors };
+        return { rowNumber: i + 2, weekday, startTime, endTime, room, className, subject, userId: matches[0]?.id ?? "", trainerName: matches[0] ? `${matches[0].firstName} ${matches[0].lastName}` : row.trainer, errors };
       });
       prepared.forEach((r, index) => {
         if (r.errors.length) return;
@@ -82,7 +82,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
       if (body.action !== "import") return NextResponse.json({ rows: prepared, invalid: invalid.length, valid: prepared.length - invalid.length });
       if (invalid.length) return NextResponse.json({ error: "Corrigez les lignes signalées avant l’import.", rows: prepared }, { status: 422 });
       await prisma.$transaction(async (tx) => {
-        for (const row of prepared) await tx.timetableEntry.create({ data: { weekday: row.weekday, startTime: row.startTime, endTime: row.endTime, room: row.room, subject: row.subject, userId: row.userId } });
+        for (const row of prepared) await tx.timetableEntry.create({ data: { weekday: row.weekday, startTime: row.startTime, endTime: row.endTime, room: row.room, className: row.className || null, subject: row.subject, userId: row.userId } });
       });
       return NextResponse.json({ imported: prepared.length });
     }
