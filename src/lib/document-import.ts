@@ -10,7 +10,7 @@ const aliases: Record<string, string[]> = {
   endTime: ["fin", "heure fin", "heure de fin", "fin cours", "end", "end time"],
   room: ["salle", "salle de cours", "room", "local"],
   trainer: ["formateur", "formateur trice", "enseignant", "professeur", "prof", "trainer", "instructor"],
-  subject: ["cours", "matiere", "module", "intitule", "classe", "formation", "subject"],
+  className: ["classe", "classe de cours", "groupe", "section", "class", "class name"],\n  subject: ["cours", "matiere", "module", "intitule", "formation", "subject"],
   firstName: ["prenom", "prenoms", "first name", "given name"],
   lastName: ["nom", "nom de famille", "last name", "surname"],
   phone: ["telephone", "tel", "phone", "contact"],
@@ -31,7 +31,7 @@ function rowsFromMatrix(matrix: unknown[][], kind: "planning" | "apprenants"): I
   if (matrixClean.length < 2) return [];
   const keys = mapHeaders(matrixClean[0]);
   const required = kind === "planning" ? ["weekday", "startTime", "endTime", "room", "trainer", "subject"] : ["firstName", "lastName"];
-  if (required.some((key) => !keys.includes(key))) {
+  if (required.filter((key) => !(kind === "planning" && key === "subject" && keys.includes("className"))).some((key) => !keys.includes(key))) {
     throw new Error(kind === "planning"
       ? "Colonnes attendues : Jour, Début, Fin, Salle, Formateur et Cours/Classe."
       : "Colonnes attendues : Prénom et Nom.");
