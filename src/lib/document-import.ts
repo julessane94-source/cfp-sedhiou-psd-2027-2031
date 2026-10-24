@@ -29,14 +29,19 @@ function mapHeaders(headers: unknown[]) {
 function rowsFromMatrix(matrix: unknown[][], kind: "planning" | "apprenants"): ImportRow[] {
   const matrixClean = matrix.filter((row) => row.some((cell) => String(cell ?? "").trim()));
   if (matrixClean.length < 2) return [];
-  const keys = mapHeaders(matrixClean[0]);
-  const required = kind === "planning" ? ["weekday", "startTime", "endTime", "room", "trainer", "subject"] : ["firstName", "lastName"];
-  if (required.filter((key) => !(kind === "planning" && key === "subject" && keys.includes("className"))).some((key) => !keys.includes(key))) {
+  const required = kind === "planning" ? ["weekday", "startTime", "endTime", "room", "trainer"] : ["firstName", "lastName"];
+  const headerIndex = matrixClean.slice(0, 10).findIndex((row) => {
+    const candidate = mapHeaders(row);
+    return required.every((key) => candidate.includes(key)) &&
+      (kind !== "planning" || candidate.includes("subject") || candidate.includes("className"));
+  });
+  if (headerIndex < 0) {
     throw new Error(kind === "planning"
       ? "Colonnes attendues : Jour, Début, Fin, Salle, Formateur et Cours/Classe."
       : "Colonnes attendues : Prénom et Nom.");
   }
-  return matrixClean.slice(1).map((row) => Object.fromEntries(keys.map((key, index) => [key, String(row[index] ?? "").trim()]).filter(([key]) => Boolean(key))));
+  const keys = mapHeaders(matrixClean[headerIndex]);
+  return matrixClean.slice(headerIndex + 1).map((row) => Object.fromEntries(keys.map((key, index) => [key, String(row[index] ?? "").trim()]).filter(([key]) => Boolean(key))));
 }
 
 function rowsFromText(text: string, kind: "planning" | "apprenants") {
@@ -51,7 +56,7 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
   const buffer = Buffer.from(await file.arrayBuffer());
   if (name.endsWith(".xlsx")) {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+    await workbook.xlsx.load(buffer);
     const sheet = workbook.worksheets[0];
     if (!sheet) return [];
     const matrix: unknown[][] = [];
