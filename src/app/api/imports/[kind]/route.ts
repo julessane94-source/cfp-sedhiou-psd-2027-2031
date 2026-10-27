@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { authorizeApi } from "@/lib/permissions";
 import { extractRows, extractTrainerNames, type ImportRow } from "@/lib/document-import";
 import { normalizeRole } from "@/lib/role-routes";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 const days: Record<string, number> = { lundi: 1, lun: 1, monday: 1, mardi: 2, mar: 2, tuesday: 2, mercredi: 3, mer: 3, wednesday: 3, jeudi: 4, jeu: 4, thursday: 4, vendredi: 5, ven: 5, friday: 5, samedi: 6, sam: 6, saturday: 6, dimanche: 7, dim: 7, sunday: 7 };
@@ -77,8 +78,54 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
           matches: trainerMatches
             .filter((trainer) => clean(trainer.lastName) === surname)
             .map((trainer) => `${trainer.firstName} ${trainer.lastName}`),
+          personnelMatches: [] as string[],
         };
       });
+      if (kind === "planning" && detectedTrainers.length) {
+        const surnameLabels = detectedTrainers.map((name) => name.replace(/^(?:Mme|M)\.?\s*/i, ""));
+        const surnames = surnameLabels.map(clean);
+        const existingAgents = await prisma.agent.findMany({
+          where: { OR: surnameLabels.map((lastName) => ({ lastName: { equals: lastName, mode: "insensitive" as const } })) },
+          select: { firstName: true, lastName: true },
+        });
+        trainers.forEach((trainer) => {
+          const surname = clean(trainer.name.replace(/^(?:Mme|M)\.?\s*/i, ""));
+          trainer.personnelMatches = existingAgents
+            .filter((agent) => clean(agent.lastName) === surname)
+            .map((agent) => `${agent.firstName} ${agent.lastName}`);
+        });
+
+        const previous = await prisma.trainerReview.findMany({
+          where: { normalizedName: { in: surnames } },
+          select: { normalizedName: true },
+        });
+        for (const trainer of detectedTrainers) {
+          const surname = clean(trainer.replace(/^(?:Mme|M)\.?\s*/i, ""));
+          if (!surname) continue;
+          await prisma.trainerReview.upsert({
+            where: { normalizedName: surname },
+            create: { sourceName: trainer, normalizedName: surname, sourceFileName: file.name, createdById: auth.session.userId },
+            update: { sourceName: trainer, sourceFileName: file.name, status: "A_CONFIRMER", reviewedById: null },
+          });
+        }
+        const newNames = [...new Set(surnames.filter((name) => name && !previous.some((item) => item.normalizedName === name)))];
+        const reviewers = await prisma.user.findMany({
+          where: { status: "ACTIVE", role: { name: "CHEF_TRAVAUX" } },
+          select: { id: true },
+        });
+        if (reviewers.length && detectedTrainers.length) {
+          const names = detectedTrainers.join(", ");
+          await prisma.notification.createMany({
+            data: reviewers.map(({ id }) => ({
+              userId: id,
+              title: newNames.length ? "Formateurs à confirmer dans le personnel" : "Mise à jour des formateurs à confirmer",
+              message: `${file.name}: vérifiez les formateurs détectés (${names}) dans la rubrique Personnel, puis confirmez ou complétez chaque dossier.`,
+            })),
+          });
+          revalidatePath("/personnel");
+          revalidatePath("/notifications");
+        }
+      }
       return NextResponse.json({ rows, trainers });
     }
     const body = await request.json();

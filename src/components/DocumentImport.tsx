@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type Props = { kind: "planning" | "apprenants" };
 type Row = Record<string, string | number | string[]>;
-type DetectedTrainer = { name: string; matches: string[] };
+type DetectedTrainer = { name: string; matches: string[]; personnelMatches?: string[] };
 
 const labels: Record<string, string> = {
   weekday: "Jour", startTime: "Début", endTime: "Fin", room: "Salle", className: "Classe / groupe", trainerName: "Formateur", subject: "Cours / classe",
@@ -90,9 +90,11 @@ export default function DocumentImport({ kind }: Props) {
           <ul className="mt-3 space-y-2 text-sm">
             {detectedTrainers.map((trainer) => <li key={trainer.name} className="flex flex-wrap gap-x-2">
               <span className="font-semibold">{trainer.name}</span>
-              <span className="text-cyan-900">{trainer.matches.length ? `Compte(s) correspondant(s) : ${trainer.matches.join(", ")}` : "Aucun compte correspondant — à compléter ou corriger."}</span>
+              <span className="text-cyan-900">{trainer.matches.length ? `Compte(s) correspondant(s) : ${trainer.matches.join(", ")}` : "Aucun compte formateur correspondant."}</span>
+              {trainer.personnelMatches?.length ? <span className="w-full text-cyan-900">Dossier(s) Personnel correspondant(s) : {trainer.personnelMatches.join(", ")}</span> : <span className="w-full text-cyan-900">Ajouté à la liste Personnel pour confirmation ou complément par le Chef des travaux.</span>}
             </li>)}
           </ul>
+          {kind === "planning" && <a href="/personnel" className="mt-4 inline-flex rounded-lg bg-cyan-900 px-4 py-2 font-semibold text-white hover:bg-cyan-800">Ouvrir les dossiers à confirmer dans Personnel</a>}
         </div>
       )}
       {previewRows.length > 0 && (

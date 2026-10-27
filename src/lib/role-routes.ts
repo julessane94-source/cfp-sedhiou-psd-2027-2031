@@ -16,7 +16,7 @@ export const roleRoutes: Record<string, string[]> = {
   ],
   CHEF_TRAVAUX: [
     "/dashboard", "/formations", "/apprenants", "/stages", "/infrastructures",
-    "/documents", "/notifications", "/planning",
+    "/documents", "/notifications", "/planning", "/personnel",
   ],
   SURVEILLANT: [
     "/dashboard", "/apprenants", "/stages", "/notifications", "/securite",
