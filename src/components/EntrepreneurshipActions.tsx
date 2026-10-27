@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function EntrepreneurshipActions({
@@ -11,6 +12,7 @@ export default function EntrepreneurshipActions({
   status: string;
   financedAmount: string | null;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function update(data: Record<string, unknown>) {
@@ -22,7 +24,7 @@ export default function EntrepreneurshipActions({
       body: JSON.stringify({ id, ...data }),
     });
 
-    window.location.reload();
+    router.refresh();
   }
 
   return (
