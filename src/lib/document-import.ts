@@ -69,7 +69,7 @@ async function createPdfParser(data: Uint8Array) {
 function rowsFromPlanningTables(result: { pages?: Array<{ tables?: unknown[][][] }> }): ImportRow[] {
   const rows: ImportRow[] = [];
   const timeRange = (value: string) => {
-    const match = value.match(/(\d{1,2})(?:h|:)(\d{0,2})?\s*[-–à]\s*(\d{1,2})(?:h|:)(\d{0,2})?/i);
+    const match = value.match(/(\d{1,2})(?:h|:)?(\d{2})?\s*[-–à]\s*(\d{1,2})(?:h|:)?(\d{2})?/i);
     if (!match) return null;
     const start = `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2] || 0).padStart(2, "0"))}`;
     const end = `${String(Number(match[3])).padStart(2, "0")}:${String(Number(match[4] || 0).padStart(2, "0"))}`;
