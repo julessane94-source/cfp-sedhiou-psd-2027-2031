@@ -138,7 +138,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
         const startTime = time(row.startTime ?? ""), endTime = time(row.endTime ?? "");
         const room = row.room?.trim() ?? "", className = row.className?.trim() ?? "", subject = row.subject?.trim() || className;
         const teacher = clean(row.trainer ?? "");
-        const abbreviatedSurname = clean(teacher.replace(/^(?:mme?|monsieur|madame)\\.?\\s*/, ""));
+        const abbreviatedSurname = clean(teacher.replace(/^(?:mme?|monsieur|madame)\.?\s*/, ""));
         const matches = trainers.filter((t) =>
           clean(`${t.firstName} ${t.lastName}`) === teacher ||
           clean(t.email) === teacher ||
