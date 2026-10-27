@@ -86,7 +86,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
         const surnames = surnameLabels.map(clean);
         const existingAgents = await prisma.agent.findMany({
           where: { OR: surnameLabels.map((lastName) => ({ lastName: { equals: lastName, mode: "insensitive" as const } })) },
-          select: { firstName: true, lastName: true },
+          select: { id: true, firstName: true, lastName: true, position: true },
         });
         trainers.forEach((trainer) => {
           const surname = clean(trainer.name.replace(/^(?:Mme|M)\.?\s*/i, ""));
@@ -99,32 +99,65 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
           where: { normalizedName: { in: surnames } },
           select: { normalizedName: true },
         });
-        for (const trainer of detectedTrainers) {
-          const surname = clean(trainer.replace(/^(?:Mme|M)\.?\s*/i, ""));
-          if (!surname) continue;
-          await prisma.trainerReview.upsert({
-            where: { normalizedName: surname },
-            create: { sourceName: trainer, normalizedName: surname, sourceFileName: file.name, createdById: auth.session.userId },
-            update: { sourceName: trainer, sourceFileName: file.name, status: "A_CONFIRMER", reviewedById: null },
-          });
-        }
+        await prisma.$transaction(async (tx) => {
+          for (let index = 0; index < detectedTrainers.length; index++) {
+            const sourceName = detectedTrainers[index];
+            const surname = surnames[index];
+            const surnameLabel = surnameLabels[index];
+            if (!surname) continue;
+
+            const review = await tx.trainerReview.upsert({
+              where: { normalizedName: surname },
+              create: { sourceName, normalizedName: surname, sourceFileName: file.name, createdById: auth.session.userId },
+              update: { sourceName, sourceFileName: file.name, status: "A_CONFIRMER", reviewedById: null },
+            });
+            const matches = existingAgents.filter((agent) => clean(agent.lastName) === surname);
+            if (matches.length) {
+              // Mark each possible personnel match as a trainer awaiting the Chef's
+              // identity confirmation; ambiguous surnames remain unlinked.
+              for (const match of matches) {
+                const position = match.position?.trim() ?? "";
+                if (!position.toLocaleLowerCase("fr").includes("formateur")) {
+                  await tx.agent.update({
+                    where: { id: match.id },
+                    data: { position: position ? `${position} · Formateur (à confirmer)` : "Formateur (à confirmer)" },
+                  });
+                }
+              }
+            } else if (!review.agentId) {
+              // Create a visible provisional personnel record even when the PDF
+              // only supplies a surname. The Chef can replace the placeholder.
+              const agent = await tx.agent.create({
+                data: {
+                  matricule: `FORM-${review.id.slice(-12).toUpperCase()}`,
+                  firstName: "À confirmer",
+                  lastName: surnameLabel,
+                  position: "Formateur (à confirmer)",
+                },
+                select: { id: true },
+              });
+              await tx.trainerReview.update({ where: { id: review.id }, data: { agentId: agent.id } });
+            }
+          }
+        });
+
         const newNames = [...new Set(surnames.filter((name) => name && !previous.some((item) => item.normalizedName === name)))];
         const reviewers = await prisma.user.findMany({
           where: { status: "ACTIVE", role: { name: "CHEF_TRAVAUX" } },
           select: { id: true },
         });
-        if (reviewers.length && detectedTrainers.length) {
+        if (reviewers.length) {
           const names = detectedTrainers.join(", ");
           await prisma.notification.createMany({
             data: reviewers.map(({ id }) => ({
               userId: id,
-              title: newNames.length ? "Formateurs à confirmer dans le personnel" : "Mise à jour des formateurs à confirmer",
-              message: `${file.name}: vérifiez les formateurs détectés (${names}) dans la rubrique Personnel, puis confirmez ou complétez chaque dossier.`,
+              title: newNames.length ? "Formateurs ajoutés au personnel — à confirmer" : "Mise à jour des formateurs à confirmer",
+              message: `${file.name}: les formateurs détectés ont été ajoutés ou associés à des dossiers Personnel. Vérifiez les identités et complétez les informations dans la rubrique Personnel : ${names}.`,
             })),
           });
-          revalidatePath("/personnel");
-          revalidatePath("/notifications");
         }
+        revalidatePath("/personnel");
+        revalidatePath("/notifications");
       }
       return NextResponse.json({ rows, trainers });
     }
