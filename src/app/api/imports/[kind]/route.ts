@@ -112,19 +112,18 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
               update: { sourceName, sourceFileName: file.name },
             });
             const matches = existingAgents.filter((agent) => clean(agent.lastName) === surname);
-            if (matches.length) {
-              // Mark each possible personnel match as a trainer awaiting the Chef's
-              // identity confirmation; ambiguous surnames remain unlinked.
-              for (const match of matches) {
-                const position = match.position?.trim() ?? "";
-                if (!position.toLocaleLowerCase("fr").includes("formateur")) {
-                  await tx.agent.update({
-                    where: { id: match.id },
-                    data: { position: position ? `${position} · Formateur (à confirmer)` : "Formateur (à confirmer)" },
-                  });
-                }
+            if (matches.length === 1) {
+              // A unique surname match can be marked pending. The Chef still
+              // confirms the identity before it is treated as final.
+              const match = matches[0];
+              const position = match.position?.trim() ?? "";
+              if (!position.toLocaleLowerCase("fr").includes("formateur")) {
+                await tx.agent.update({
+                  where: { id: match.id },
+                  data: { position: position ? `${position} · Formateur (à confirmer)` : "Formateur (à confirmer)" },
+                });
               }
-            } else if (!review.agentId) {
+            } else if (matches.length === 0 && !review.agentId) {
               // Create a visible provisional personnel record even when the PDF
               // only supplies a surname. The Chef can replace the placeholder.
               const agent = await tx.agent.create({
