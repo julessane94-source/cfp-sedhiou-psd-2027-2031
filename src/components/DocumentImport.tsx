@@ -60,6 +60,28 @@ export default function DocumentImport({ kind }: Props) {
     } finally { setBusy(false); }
   }
 
+  async function revalidate(rows: Record<string, string>[]) {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/imports/" + kind, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "preview", rows }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Vérification des lignes impossible.");
+      setPreviewRows(data.rows ?? []);
+      setInvalid(data.invalid ?? 0);
+      setMessage(data.invalid
+        ? `${data.valid ?? 0} ligne(s) prête(s), ${data.invalid} à compléter ou corriger.`
+        : `${data.valid ?? 0} ligne(s) prête(s) à enregistrer.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Vérification impossible.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const columns = kind === "planning"
     ? ["weekday", "startTime", "endTime", "room", "className", "trainerName", "subject", "errors"]
     : ["firstName", "lastName", "phone", "email", "birthDate", "errors"];
@@ -78,7 +100,7 @@ export default function DocumentImport({ kind }: Props) {
         <button type="button" onClick={preview} disabled={!file || busy} className="rounded-xl bg-indigo-800 px-5 py-3 font-bold text-white disabled:opacity-50">{busy ? "Lecture…" : "Lire et prévisualiser"}</button>
       </div>
       {kind === "planning" ? (
-        <p className="rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">Colonnes requises : Jour, Début, Fin, Salle, Formateur et Cours ou Classe. Le formateur doit correspondre à un compte actif de la plateforme.</p>
+        <p className="rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">Colonnes requises : Jour, Début, Fin, Salle, Formateur et Cours ou Classe. Le formateur doit correspondre à un compte actif de la plateforme. Les salles détectées seront enregistrées avec les créneaux ; le Chef des travaux peut compléter celles qui manquent dans la prévisualisation.</p>
       ) : (
         <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">Colonnes requises : Prénom et Nom. Téléphone, e-mail et date de naissance sont facultatifs et pourront être complétés dans la fiche. Les matricules sont générés automatiquement.</p>
       )}
@@ -105,11 +127,30 @@ export default function DocumentImport({ kind }: Props) {
               <tbody>{previewRows.map((row, index) => {
                 const errors = Array.isArray(row.errors) ? row.errors.join(", ") : "";
                 return <tr key={index} className={errors ? "border-t bg-rose-50 text-rose-900" : "border-t"}>
-                  {columns.map((key) => <td key={key} className="whitespace-nowrap px-3 py-2">{key === "errors" ? errors || "Prête" : String(row[key] ?? "—")}</td>)}
+                  {columns.map((key) => <td key={key} className="whitespace-nowrap px-3 py-2">{key === "errors" ? errors || "Prête" : key === "room" && kind === "planning" ? (
+                    <input
+                      aria-label={`Salle pour la ligne ${index + 1}`}
+                      value={sourceRows[index]?.room ?? ""}
+                      onChange={(event) => {
+                        const next = [...sourceRows];
+                        next[index] = { ...next[index], room: event.target.value };
+                        setSourceRows(next);
+                        setPreviewRows((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, room: event.target.value } : item));
+                      }}
+                      onBlur={() => void revalidate(sourceRows)}
+                      placeholder="Salle à compléter"
+                      className="w-36 rounded-md border border-slate-300 px-2 py-1"
+                    />
+                  ) : String(row[key] ?? "—")}</td>)}
                 </tr>;
               })}</tbody>
             </table>
           </div>
+          {kind === "planning" && sourceRows.some((item) => !item.room?.trim()) && (
+            <p className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-950">
+              Chef des travaux : complétez les salles manquantes dans la colonne « Salle », puis quittez le champ pour revérifier les lignes avant l’enregistrement.
+            </p>
+          )}
           <button type="button" onClick={commit} disabled={busy || invalid > 0} className="rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Enregistrement…" : kind === "planning" ? "Enregistrer les créneaux" : "Créer les apprenants"}</button>
         </>
       )}
