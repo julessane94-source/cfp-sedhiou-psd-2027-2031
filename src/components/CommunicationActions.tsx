@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function CommunicationActions({
@@ -9,6 +10,7 @@ export default function CommunicationActions({
   id: string;
   status: string;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function update(nextStatus: string) {
@@ -20,7 +22,7 @@ export default function CommunicationActions({
       body: JSON.stringify({ id, status: nextStatus }),
     });
 
-    window.location.reload();
+    router.refresh();
   }
 
   return (
