@@ -152,6 +152,7 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
             pdfjs.OPS.eoFillStroke,
             pdfjs.OPS.closeFillStroke,
             pdfjs.OPS.closeEOFillStroke,
+            pdfjs.OPS.endPath,
           ];
           if (!strokeOps.includes(args?.[0] as number)) continue;
           const bounds = args[2] as number[] | undefined;
