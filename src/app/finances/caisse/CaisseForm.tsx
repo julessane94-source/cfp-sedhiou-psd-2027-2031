@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 type Props = {
@@ -7,6 +8,7 @@ type Props = {
 };
 
 export default function CaisseForm({ sourceType }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -54,7 +56,7 @@ export default function CaisseForm({ sourceType }: Props) {
     );
 
     setLoading(false);
-    window.location.reload();
+    router.refresh();
   }
 
   return (
