@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function CaisseActions() {
+  const router = useRouter();
   const [open, setOpen] = useState<"fonds" | "depense" | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -46,9 +48,7 @@ export function CaisseActions() {
     setMessage("Mouvement enregistré avec succès.");
     form.reset();
 
-    setTimeout(() => {
-      window.location.reload();
-    }, 700);
+    router.refresh();
   }
 
   return (
