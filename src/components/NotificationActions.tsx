@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function NotificationActions({
@@ -9,6 +10,7 @@ export default function NotificationActions({
   id: string;
   read: boolean;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function update(nextRead: boolean) {
@@ -25,7 +27,7 @@ export default function NotificationActions({
       }),
     });
 
-    window.location.reload();
+    router.refresh();
   }
 
   return (
