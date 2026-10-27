@@ -26,6 +26,9 @@ export async function POST(request: Request) {
       if (!review) throw new Error("Dossier formateur introuvable.");
 
       let agentId = requestedAgentId;
+      const provisionalAgent = review.agentId
+        ? await tx.agent.findUnique({ where: { id: review.agentId }, select: { id: true, matricule: true, userId: true } })
+        : null;
       if (agentId) {
         const agent = await tx.agent.findUnique({ where: { id: agentId }, select: { id: true, position: true } });
         if (!agent) throw new Error("Le dossier Personnel sélectionné n’existe plus.");
@@ -45,6 +48,14 @@ export async function POST(request: Request) {
         where: { id: review.id },
         data: { agentId, status: "CONFIRME", reviewedById: authorization.session.userId },
       });
+      if (
+        provisionalAgent &&
+        provisionalAgent.id !== agentId &&
+        !provisionalAgent.userId &&
+        provisionalAgent.matricule === `FORM-${review.id.slice(-12).toUpperCase()}`
+      ) {
+        await tx.agent.delete({ where: { id: provisionalAgent.id } });
+      }
     });
     revalidatePath("/personnel");
     revalidatePath("/dashboard");
