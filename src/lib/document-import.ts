@@ -100,7 +100,7 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
     };
   };
   const dayPattern = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)$/i;
-  const teacherPattern = /\b(?:mme?|madame|monsieur)\.?\s+([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’-]{2,})\b/i;
+  const teacherPattern = /\b(?:m(?:me)?|madame|monsieur)\.?\s+([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’-]{2,})\b/i;
   const roomPattern = /^\s*(?:salle|atelier|laboratoire|local)\b.*$/i;
 
   try {
@@ -183,17 +183,20 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
         const matrix = pdfjs.Util.transform(viewport.transform, item.transform);
         const centerX = matrix[4] + item.width / 2;
         const centerY = matrix[5] - item.height / 2;
-        return [{ text: item.str.trim(), x: centerX, y: centerY }];
+        return [{ text: item.str.trim(), x: centerX, y: centerY, left: matrix[4], right: matrix[4] + item.width }];
       });
       const pageText = items.map((item) => item.text).join(" ");
       const className = pageText.match(/\bNIVEAU\s*:\s*((?:CAP\s*\d+)|(?:1\S*\s+ANN[EÉ]E))/i)?.[1]?.trim() ?? "";
 
-      const longLines = horizontal.filter((line) => line.right - line.left > 450);
-      const lineGroups: Array<{ y: number; lines: typeof longLines }> = [];
-      for (const line of longLines.sort((a, b) => a.y - b.y)) {
+      // Border segments are emitted one cell at a time. Merge segments by Y
+      // before deciding whether they span the timetable's full width.
+      const lineGroups: Array<{ y: number; lines: typeof horizontal }> = [];
+      for (const line of [...horizontal].sort((a, b) => a.y - b.y)) {
         const existing = lineGroups.find((group) => Math.abs(group.y - line.y) <= 2);
-        if (existing) existing.lines.push(line);
-        else lineGroups.push({ y: line.y, lines: [line] });
+        if (existing) {
+          existing.lines.push(line);
+          existing.y = existing.lines.reduce((sum, part) => sum + part.y, 0) / existing.lines.length;
+        } else lineGroups.push({ y: line.y, lines: [line] });
       }
       const rowBounds = lineGroups
         .filter((group) => {
@@ -203,13 +206,35 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
         })
         .map((group) => group.y)
         .sort((a, b) => a - b);
-      if (rowBounds.length < 3) {
+
+      // PDF text often splits each time label into separate items ("8h", "-", "9h").
+      // Group nearby tokens on the same baseline to recover the header row and slots.
+      const timeTokenPattern = /^(?:\d{1,2}h?|[-–à])$/i;
+      const tokenRows: Array<{ y: number; items: typeof items }> = [];
+      for (const item of items.filter((entry) =>
+        timeTokenPattern.test(entry.text) || Boolean(timeRange(entry.text))
+      ).sort((a, b) => a.y - b.y)) {
+        const row = tokenRows.find((candidate) => Math.abs(candidate.y - item.y) <= 2);
+        if (row) row.items.push(item);
+        else tokenRows.push({ y: item.y, items: [item] });
+      }
+      const headerRow = tokenRows.find((row) => {
+        const labels = row.items.map((item) => item.text.toLowerCase());
+        return labels.some((label) => /^8h?$/.test(label)) &&
+          labels.some((label) => /^18h?$/.test(label)) &&
+          labels.length >= 10;
+      });
+      const headerTop = headerRow ? [...rowBounds].reverse().find((y) => y < headerRow.y + 2) : undefined;
+      const headerBottom = headerRow && headerTop !== undefined
+        ? rowBounds.find((y) => y > headerRow.y - 2 && y > headerTop + 2)
+        : undefined;
+      if (rowBounds.length < 3 || !headerRow || headerTop === undefined || headerBottom === undefined) {
         page.cleanup();
         continue;
       }
 
-      const tableTop = rowBounds[0];
-      const tableBottom = rowBounds[rowBounds.length - 1];
+      const tableTop = headerTop;
+      const tableBottom = [...rowBounds].reverse().find((y) => y > headerTop + 2) ?? headerTop;
       const tableLeft = Math.min(...horizontal.filter((line) => Math.abs(line.y - tableTop) < 3).map((line) => line.left));
       const tableRight = Math.max(...horizontal.filter((line) => Math.abs(line.y - tableTop) < 3).map((line) => line.right));
       const dayItems = items.filter((item) => dayPattern.test(item.text));
@@ -218,8 +243,6 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
         continue;
       }
 
-      const headerTop = rowBounds[0];
-      const headerBottom = rowBounds[1];
       const headerCenter = (headerTop + headerBottom) / 2;
       const headerX = cluster(vertical
         .filter((line) => line.bottom >= headerCenter && line.top <= headerCenter)
@@ -234,10 +257,21 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
         const right = boundaries.find((value) => value > x + 1);
         return left === undefined || right === undefined ? null : { left, right };
       };
-      const timeSlots = items.flatMap((item) => {
-        const range = timeRange(item.text);
-        if (!range || item.y < headerTop - 2 || item.y > headerBottom + 2) return [];
-        const bounds = cellBounds(item.x, headerCenter);
+      const headerTokens = headerRow.items
+        .filter((item) => item.y >= headerTop - 2 && item.y <= headerBottom + 2)
+        .sort((a, b) => a.x - b.x);
+      const timeGroups: Array<typeof headerTokens> = [];
+      for (const item of headerTokens) {
+        const group = timeGroups[timeGroups.length - 1];
+        const previous = group?.[group.length - 1];
+        if (group && previous && item.left - previous.right <= 25) group.push(item);
+        else timeGroups.push([item]);
+      }
+      const timeSlots = timeGroups.flatMap((group) => {
+        const range = timeRange(group.map((item) => item.text).join(" "));
+        if (!range) return [];
+        const centerX = (group[0].x + group[group.length - 1].x) / 2;
+        const bounds = cellBounds(centerX, headerCenter);
         return bounds ? [{ ...bounds, ...range }] : [];
       });
       if (!timeSlots.length) {
@@ -267,18 +301,25 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
           const slotMatches = timeSlots.filter((slot) => slot.left < group.bounds.right - 1 && slot.right > group.bounds.left + 1);
           if (!slotMatches.length) continue;
           const ordered = [...group.items].sort((a, b) => a.y - b.y || a.x - b.x);
-          const textLines: Array<{ y: number; text: string }> = [];
+          const textLines: Array<{ y: number; text: string; right: number }> = [];
           for (const item of ordered) {
             const existing = textLines.find((line) => Math.abs(line.y - item.y) <= 2);
-            if (existing) existing.text += " " + item.text;
-            else textLines.push({ y: item.y, text: item.text });
+            if (existing) {
+              existing.text += (item.left - existing.right > 1.5 ? " " : "") + item.text;
+              existing.right = Math.max(existing.right, item.right);
+            } else textLines.push({ y: item.y, text: item.text, right: item.right });
           }
           const lines = textLines.map((line) => line.text.trim()).filter(Boolean);
-          const teacherLine = lines.find((line) => teacherPattern.test(line));
-          const trainer = teacherLine?.match(teacherPattern)?.[1] ?? "";
+          const teacherEntry = lines.map((line) => ({ line, match: line.match(teacherPattern) })).find((entry) => entry.match);
+          const trainer = teacherEntry?.match?.[1] ?? "";
+          const teacherLine = teacherEntry?.line;
           const roomLine = lines.find((line) => roomPattern.test(line));
           const room = roomLine?.trim() ?? "";
-          const subject = lines.filter((line) => line !== teacherLine && line !== roomLine).join(" ").trim();
+          const teacherSubject = teacherEntry && teacherEntry.match
+            ? teacherEntry.line.replace(teacherEntry.match[0], "").trim()
+            : "";
+          const subject = [teacherSubject, ...lines.filter((line) => line !== teacherLine && line !== roomLine)]
+            .filter(Boolean).join(" ").trim();
           if (!subject || !trainer) continue;
           const startSlot = [...slotMatches].sort((a, b) => a.left - b.left)[0];
           const endSlot = [...slotMatches].sort((a, b) => b.right - a.right)[0];
