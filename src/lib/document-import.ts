@@ -54,11 +54,7 @@ async function createPdfParser(data: Uint8Array) {
   // pdfjs-dist reads these browser globals while its module is being evaluated in Node.
   // Load the native polyfills first, then load the parser lazily.
   const canvas = await import("@napi-rs/canvas");
-  const globals = globalThis as typeof globalThis & {
-    DOMMatrix?: typeof canvas.DOMMatrix;
-    ImageData?: typeof canvas.ImageData;
-    Path2D?: typeof canvas.Path2D;
-  };
+  const globals = globalThis as unknown as Record<string, unknown>;
   globals.DOMMatrix ??= canvas.DOMMatrix;
   globals.ImageData ??= canvas.ImageData;
   globals.Path2D ??= canvas.Path2D;
