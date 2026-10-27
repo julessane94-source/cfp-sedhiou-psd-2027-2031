@@ -71,8 +71,8 @@ function rowsFromPlanningTables(result: { pages?: Array<{ tables?: unknown[][][]
   const timeRange = (value: string) => {
     const match = value.match(/(\d{1,2})(?:h|:)?(\d{2})?\s*[-–à]\s*(\d{1,2})(?:h|:)?(\d{2})?/i);
     if (!match) return null;
-    const start = `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2] || 0).padStart(2, "0"))}`;
-    const end = `${String(Number(match[3])).padStart(2, "0")}:${String(Number(match[4] || 0).padStart(2, "0"))}`;
+    const start = `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2] || 0)).padStart(2, "0")}`;
+    const end = `${String(Number(match[3])).padStart(2, "0")}:${String(Number(match[4] || 0)).padStart(2, "0")}`;
     return { start, end };
   };
   const dayPattern = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)$/i;
