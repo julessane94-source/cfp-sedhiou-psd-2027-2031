@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 type Role = { name: string; description: string | null };
-type Agent = { id: string; name: string; hasAccount: boolean; email: string; roleName: string };
+type Agent = { id: string; name: string; hasAccount: boolean; email: string; roleName: string; defaultRoleName?: string };
 
 export default function CreaCaiAccess({ agent, roles }: { agent: Agent; roles: Role[] }) {
   const router = useRouter();
@@ -50,7 +50,7 @@ export default function CreaCaiAccess({ agent, roles }: { agent: Agent; roles: R
   return (
     <form onSubmit={provision} className="min-w-56 space-y-2">
       <input name="email" type="email" required maxLength={254} defaultValue={agent.email} placeholder="Identifiant e-mail" className="w-full rounded-lg border p-2 text-sm" />
-      <select name="roleName" required defaultValue="" className="w-full rounded-lg border p-2 text-sm">
+      <select name="roleName" required defaultValue={agent.defaultRoleName ?? ""} className="w-full rounded-lg border p-2 text-sm">
         <option value="" disabled>Choisir un rôle</option>
         {roles.map((role) => <option key={role.name} value={role.name}>{role.name.replaceAll("_", " ")}</option>)}
       </select>
