@@ -68,6 +68,8 @@ async function createPdfParser(data: Uint8Array) {
 
 async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const { getPath } = await import("pdf-parse/worker");
+  pdfjs.GlobalWorkerOptions.workerSrc = getPath();
   const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data) });
   const document = await loadingTask.promise;
   const rows: ImportRow[] = [];
