@@ -109,8 +109,11 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
         const d = transformMatrix[3], e = transformMatrix[4], f = transformMatrix[5];
         const transformedX = a * x + c * y + e;
         const transformedY = b * x + d * y + f;
-        const point = pdfjs.Util.applyTransform([transformedX, transformedY], viewport.transform);
-        return { x: point[0], y: point[1] };
+        const [viewA, viewB, viewC, viewD, viewE, viewF] = viewport.transform;
+        return {
+          x: viewA * transformedX + viewC * transformedY + viewE,
+          y: viewB * transformedX + viewD * transformedY + viewF,
+        };
       };
       const addSegment = (x1: number, y1: number, x2: number, y2: number) => {
         if (Math.abs(y2 - y1) <= 1.5 && Math.abs(x2 - x1) > 5) {
