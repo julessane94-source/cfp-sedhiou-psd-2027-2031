@@ -51,15 +51,18 @@ function rowsFromText(text: string, kind: "planning" | "apprenants") {
 }
 
 async function createPdfParser(data: Uint8Array) {
-  // pdfjs-dist reads these browser globals while its module is being evaluated in Node.
-  // Load the native polyfills first, then load the parser lazily.
+  // Install the native polyfills before loading pdf.js.
   const canvas = await import("@napi-rs/canvas");
   const globals = globalThis as unknown as Record<string, unknown>;
   globals.DOMMatrix ??= canvas.DOMMatrix;
   globals.ImageData ??= canvas.ImageData;
   globals.Path2D ??= canvas.Path2D;
 
+  // Resolve pdf-parse's worker explicitly; Vercel's runtime cannot infer pdf.js's
+  // default fake-worker path from its bundled serverless output.
+  const { getPath } = await import("pdf-parse/worker");
   const { PDFParse } = await import("pdf-parse");
+  PDFParse.setWorker(getPath());
   return new PDFParse({ data });
 }
 
