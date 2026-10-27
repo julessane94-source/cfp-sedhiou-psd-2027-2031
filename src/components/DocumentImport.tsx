@@ -108,7 +108,7 @@ export default function DocumentImport({ kind }: Props) {
       {detectedTrainers.length > 0 && (
         <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
           <h3 className="font-bold text-cyan-950">Formateurs repérés dans le PDF</h3>
-          <p className="mt-1 text-sm text-cyan-900">Vérifiez les noms abrégés avec la liste actuelle des comptes formateurs.</p>
+          <p className="mt-1 text-sm text-cyan-900">Les noms extraits sont ajoutés ou rapprochés dans Personnel avec le statut « Formateur à confirmer ». Le Chef des travaux peut corriger et confirmer les dossiers. Un compte de connexion nécessite ensuite l’adresse e-mail réelle de chaque formateur.</p>
           <ul className="mt-3 space-y-2 text-sm">
             {detectedTrainers.map((trainer) => <li key={trainer.name} className="flex flex-wrap gap-x-2">
               <span className="font-semibold">{trainer.name}</span>
