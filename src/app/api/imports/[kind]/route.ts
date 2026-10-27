@@ -138,7 +138,12 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
         const startTime = time(row.startTime ?? ""), endTime = time(row.endTime ?? "");
         const room = row.room?.trim() ?? "", className = row.className?.trim() ?? "", subject = row.subject?.trim() || className;
         const teacher = clean(row.trainer ?? "");
-        const matches = trainers.filter((t) => clean(`${t.firstName} ${t.lastName}`) === teacher || clean(t.email) === teacher);
+        const abbreviatedSurname = clean(teacher.replace(/^(?:mme?|monsieur|madame)\\.?\\s*/, ""));
+        const matches = trainers.filter((t) =>
+          clean(`${t.firstName} ${t.lastName}`) === teacher ||
+          clean(t.email) === teacher ||
+          (abbreviatedSurname.length >= 3 && clean(t.lastName) === abbreviatedSurname)
+        );
         const errors: string[] = [];
         if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) errors.push("jour invalide");
         if (!startTime || !endTime || startTime >= endTime) errors.push("horaires invalides");
