@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorizeApi } from "@/lib/permissions";
-import { extractRows, type ImportRow } from "@/lib/document-import";
+import { extractRows, extractTrainerNames, type ImportRow } from "@/lib/document-import";
+import { normalizeRole } from "@/lib/role-routes";
 
 export const runtime = "nodejs";
 const days: Record<string, number> = { lundi: 1, lun: 1, monday: 1, mardi: 2, mar: 2, tuesday: 2, mercredi: 3, mer: 3, wednesday: 3, jeudi: 4, jeu: 4, thursday: 4, vendredi: 5, ven: 5, friday: 5, samedi: 6, sam: 6, saturday: 6, dimanche: 7, dim: 7, sunday: 7 };
@@ -33,8 +34,9 @@ async function authorize(kind: string) {
   const permission = kind === "planning" ? "planning.gerer" : "apprenants.gerer";
   const auth = await authorizeApi(permission);
   if (!auth.ok) return { error: auth.response } as const;
+  const role = normalizeRole(auth.session.role);
   const allowed = kind === "planning" ? ["DIRECTEUR", "CHEF_TRAVAUX"] : ["DIRECTEUR", "SURVEILLANT"];
-  if (!allowed.includes(auth.session.role)) return { error: NextResponse.json({ error: "Accès refusé." }, { status: 403 }) } as const;
+  if (!allowed.includes(role)) return { error: NextResponse.json({ error: "Accès refusé." }, { status: 403 }) } as const;
   return { session: auth.session } as const;
 }
 export async function POST(request: Request, context: { params: Promise<{ kind: string }> }) {
@@ -48,9 +50,36 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
       const form = await request.formData();
       const file = form.get("file");
       if (!(file instanceof File)) return NextResponse.json({ error: "Sélectionnez un fichier." }, { status: 400 });
-      const rows = await extractRows(file, kind);
-      if (!rows.length) return NextResponse.json({ error: "Aucune ligne exploitable n’a été trouvée." }, { status: 400 });
-      return NextResponse.json({ rows });
+      let rows: ImportRow[] = [];
+      let detectedTrainers: string[] = [];
+      try {
+        rows = await extractRows(file, kind);
+      } catch (error) {
+        if (kind !== "planning" || !file.name.toLowerCase().endsWith(".pdf")) throw error;
+        detectedTrainers = await extractTrainerNames(file);
+        if (!detectedTrainers.length) throw error;
+      }
+      if (kind === "planning" && file.name.toLowerCase().endsWith(".pdf") && rows.length) {
+        detectedTrainers = await extractTrainerNames(file);
+      }
+      if (!rows.length && !detectedTrainers.length) return NextResponse.json({ error: "Aucune ligne exploitable n’a été trouvée." }, { status: 400 });
+
+      const trainerMatches = detectedTrainers.length
+        ? await prisma.user.findMany({
+            where: { status: "ACTIVE", role: { name: "FORMATEUR" } },
+            select: { firstName: true, lastName: true },
+          })
+        : [];
+      const trainers = detectedTrainers.map((name) => {
+        const surname = clean(name.replace(/^(?:Mme|M)\.?\s*/i, ""));
+        return {
+          name,
+          matches: trainerMatches
+            .filter((trainer) => clean(trainer.lastName) === surname)
+            .map((trainer) => `${trainer.firstName} ${trainer.lastName}`),
+        };
+      });
+      return NextResponse.json({ rows, trainers });
     }
     const body = await request.json();
     const rows = validateRows(body.rows);

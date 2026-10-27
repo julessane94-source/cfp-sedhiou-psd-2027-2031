@@ -114,7 +114,12 @@ export async function proxy(request: NextRequest) {
     return unauthorizedResponse(isApi, request);
   }
 
-  const routePath = isApi ? pathname.slice("/api".length) : pathname;
+  const apiRoute = isApi ? pathname.slice("/api".length) : pathname;
+  const routePath = apiRoute.startsWith("/imports/planning")
+    ? "/planning"
+    : apiRoute.startsWith("/imports/apprenants")
+      ? "/apprenants"
+      : apiRoute;
   if (!hasRouteAccess(routePath, session.role)) {
     if (isApi) {
       return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
