@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Sidebar from "./layout/Sidebar";
@@ -18,54 +18,18 @@ export default function AppShell({
   const pathname = usePathname();
   const router = useRouter();
 
-  const previousPathname = useRef<string | null>(null);
-  const splashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isLoginPage =
     pathname === "/" || pathname === "/connexion";
 
-  const startSplash = () => {
-    if (splashTimer.current) {
-      clearTimeout(splashTimer.current);
-    }
-
-    setShowSplash(true);
-
-    splashTimer.current = setTimeout(() => {
-      setShowSplash(false);
-    }, 1400);
-  };
-
   /*
-   * Affiche le logo pendant le chargement initial, puis le retire après
-   * une courte transition. Le contenu protégé reste caché jusqu'au contrôle
-   * de session.
+   * Logo d’accueil affiché uniquement au chargement initial.
+   * Les navigations internes conservent la page et le logo dans le shell.
    */
   useEffect(() => {
-    splashTimer.current = setTimeout(() => {
-      setShowSplash(false);
-    }, 950);
-
-    return () => {
-      if (splashTimer.current) {
-        clearTimeout(splashTimer.current);
-      }
-    };
+    const timer = setTimeout(() => setShowSplash(false), 950);
+    return () => clearTimeout(timer);
   }, []);
-
-  /*
-   * Affiche le logo avant chaque changement de page, y compris après
-   * authentification et pendant la navigation entre les espaces.
-   */
-  useLayoutEffect(() => {
-    const previous = previousPathname.current;
-
-    if (previous && previous !== pathname) {
-      startSplash();
-    }
-
-    previousPathname.current = pathname;
-  }, [pathname, isLoginPage]);
 
   /*
    * Vérification de la session.
