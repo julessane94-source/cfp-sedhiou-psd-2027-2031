@@ -131,7 +131,7 @@ export default async function PersonnelPage({ searchParams }: { searchParams: Pr
           <h2 className="text-xl font-bold">
             Nouvel agent et compte utilisateur
           </h2>
-          <p className="mt-2 text-sm text-slate-600">Chaque membre du personnel reçoit un identifiant et un rôle d’accès à la plateforme.</p>
+          <p className="mt-2 text-sm text-slate-600">Après confirmation d’un dossier formateur, le Directeur peut lui associer un compte avec son e-mail réel, le rôle FORMATEUR et un mot de passe initial.</p>
 
           <form
             action="/api/personnel"
@@ -274,6 +274,7 @@ export default async function PersonnelPage({ searchParams }: { searchParams: Pr
                           hasAccount: Boolean(agent.userId),
                           email: agent.user?.email ?? agent.email ?? "",
                           roleName: agent.user?.role?.name ?? "",
+                          defaultRoleName: agent.position?.toLocaleLowerCase().includes("formateur") ? "FORMATEUR" : "",
                         }}
                         roles={roles}
                       />                    </td>
