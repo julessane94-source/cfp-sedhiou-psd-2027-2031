@@ -109,7 +109,7 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
             const review = await tx.trainerReview.upsert({
               where: { normalizedName: surname },
               create: { sourceName, normalizedName: surname, sourceFileName: file.name, createdById: auth.session.userId },
-              update: { sourceName, sourceFileName: file.name, status: "A_CONFIRMER", reviewedById: null },
+              update: { sourceName, sourceFileName: file.name },
             });
             const matches = existingAgents.filter((agent) => clean(agent.lastName) === surname);
             if (matches.length) {
