@@ -112,9 +112,10 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
               update: { sourceName, sourceFileName: file.name },
             });
             const matches = existingAgents.filter((agent) => clean(agent.lastName) === surname);
+            if (review.status === "CONFIRME" && review.agentId) continue;
             if (matches.length === 1) {
-              // A unique surname match can be marked pending. The Chef still
-              // confirms the identity before it is treated as final.
+              // A unique surname match is put on the trainer roster, but remains
+              // pending until the Chef confirms the full identity.
               const match = matches[0];
               const position = match.position?.trim() ?? "";
               if (!position.toLocaleLowerCase("fr").includes("formateur")) {
@@ -123,9 +124,12 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
                   data: { position: position ? `${position} · Formateur (à confirmer)` : "Formateur (à confirmer)" },
                 });
               }
-            } else if (matches.length === 0 && !review.agentId) {
-              // Create a visible provisional personnel record even when the PDF
-              // only supplies a surname. The Chef can replace the placeholder.
+              if (!review.agentId) {
+                await tx.trainerReview.update({ where: { id: review.id }, data: { agentId: match.id } });
+              }
+            } else if (!review.agentId) {
+              // No match or an ambiguous surname: create a visible provisional
+              // roster entry and let the Chef choose or complete the dossier.
               const agent = await tx.agent.create({
                 data: {
                   matricule: `FORM-${review.id.slice(-12).toUpperCase()}`,
