@@ -70,7 +70,14 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const { getPath } = await import("pdf-parse/worker");
   pdfjs.GlobalWorkerOptions.workerSrc = getPath();
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data) });
+  // pdf.js requires this directory explicitly in Node.js. Resolve it beside the
+  // same legacy build that was imported so the URL stays valid in Vercel traces.
+  const pdfjsEntryUrl = import.meta.resolve("pdfjs-dist/legacy/build/pdf.mjs");
+  const standardFontDataUrl = new URL("./standard_fonts/", pdfjsEntryUrl).href;
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(data),
+    standardFontDataUrl,
+  });
   const document = await loadingTask.promise;
   const rows: ImportRow[] = [];
 
