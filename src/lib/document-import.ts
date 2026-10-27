@@ -66,6 +66,46 @@ async function createPdfParser(data: Uint8Array) {
   return new PDFParse({ data });
 }
 
+function rowsFromPlanningTables(result: { pages?: Array<{ tables?: unknown[][][] }> }): ImportRow[] {
+  const rows: ImportRow[] = [];
+  const timeRange = (value: string) => {
+    const match = value.match(/(\d{1,2})(?:h|:)(\d{0,2})?\s*[-–à]\s*(\d{1,2})(?:h|:)(\d{0,2})?/i);
+    if (!match) return null;
+    const start = `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2] || 0).padStart(2, "0"))}`;
+    const end = `${String(Number(match[3])).padStart(2, "0")}:${String(Number(match[4] || 0).padStart(2, "0"))}`;
+    return { start, end };
+  };
+  const dayPattern = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)$/i;
+  const teacherPattern = /\b(?:M(?:me)?\.?\s*)?([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’-]{2,})\b/;
+  for (const page of result.pages ?? []) for (const rawTable of page.tables ?? []) {
+    const table = rawTable.map((row) => (Array.isArray(row) ? row.map((cell) => String(cell ?? "").trim()) : []));
+    const headerIndex = table.findIndex((row) => row.some((cell) => timeRange(cell)));
+    const header = headerIndex >= 0 ? table[headerIndex] : [];
+    const timeColumns = header.map((cell, index) => ({ index, range: timeRange(cell) })).filter((item): item is { index: number; range: { start: string; end: string } } => Boolean(item.range));
+    const bodyStart = headerIndex >= 0 ? headerIndex + 1 : 0;
+    for (const cells of table.slice(bodyStart)) {
+      const weekday = cells.find((cell) => dayPattern.test(cell.trim()));
+      if (!weekday) continue;
+      for (let column = 1; column < cells.length; column++) {
+        const content = cells[column]?.replace(/\s+/g, " ").trim();
+        if (!content || content.length < 3) continue;
+        let range = timeColumns.find((item) => item.index === column)?.range;
+        if (!range && headerIndex < 0) {
+          const slot = column <= 5 ? column - 1 : column >= 7 && column <= 9 ? column - 2 : -1;
+          if (slot >= 0) range = { start: slot < 5 ? `${String(8 + slot).padStart(2, "0")}:00` : `${String(15 + slot - 5).padStart(2, "0")}:00`, end: slot < 5 ? `${String(9 + slot).padStart(2, "0")}:00` : `${String(16 + slot - 5).padStart(2, "0")}:00` };
+        }
+        if (!range) continue;
+        const parts = content.split(/\s{2,}|\n/).map((part) => part.trim()).filter(Boolean);
+        const trainer = content.match(teacherPattern)?.[1] ?? "";
+        const room = content.match(/\b(?:salle|sal|local)\s*[:.-]?\s*([A-Z0-9-]+)/i)?.[1] ?? "";
+        const subject = parts.find((part) => !teacherPattern.test(part) && !/^\d{1,2}h?\b/i.test(part)) ?? content;
+        rows.push({ weekday, startTime: range.start, endTime: range.end, room, className: "", trainer, subject });
+      }
+    }
+  }
+  return rows;
+}
+
 export async function extractRows(file: File, kind: "planning" | "apprenants") {
   if (file.size > 10 * 1024 * 1024) throw new Error("Le fichier dépasse la limite de 10 Mo.");
   const name = file.name.toLowerCase();
@@ -101,6 +141,11 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
   if (name.endsWith(".pdf")) {
     const parser = await createPdfParser(new Uint8Array(buffer));
     try {
+      if (kind === "planning") {
+        const tables = await parser.getTable();
+        const gridRows = rowsFromPlanningTables(tables as { pages?: Array<{ tables?: unknown[][][] }> });
+        if (gridRows.length) return gridRows;
+      }
       const result = await parser.getText();
       if (!result.text.trim()) throw new Error("Ce PDF ne contient pas de texte sélectionnable. Les PDF scannés nécessitent une reconnaissance OCR.");
       return rowsFromText(result.text, kind);
