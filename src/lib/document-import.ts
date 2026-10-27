@@ -1,6 +1,5 @@
 import ExcelJS from "exceljs";
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 
 export type ImportRow = Record<string, string>;
 
@@ -51,6 +50,23 @@ function rowsFromText(text: string, kind: "planning" | "apprenants") {
   return rowsFromMatrix(matrix, kind);
 }
 
+async function createPdfParser(data: Uint8Array) {
+  // pdfjs-dist reads these browser globals while its module is being evaluated in Node.
+  // Load the native polyfills first, then load the parser lazily.
+  const canvas = await import("@napi-rs/canvas");
+  const globals = globalThis as typeof globalThis & {
+    DOMMatrix?: typeof canvas.DOMMatrix;
+    ImageData?: typeof canvas.ImageData;
+    Path2D?: typeof canvas.Path2D;
+  };
+  globals.DOMMatrix ??= canvas.DOMMatrix;
+  globals.ImageData ??= canvas.ImageData;
+  globals.Path2D ??= canvas.Path2D;
+
+  const { PDFParse } = await import("pdf-parse");
+  return new PDFParse({ data });
+}
+
 export async function extractRows(file: File, kind: "planning" | "apprenants") {
   if (file.size > 10 * 1024 * 1024) throw new Error("Le fichier dépasse la limite de 10 Mo.");
   const name = file.name.toLowerCase();
@@ -84,7 +100,7 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
     return rowsFromText(result.value, kind);
   }
   if (name.endsWith(".pdf")) {
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const parser = await createPdfParser(new Uint8Array(buffer));
     try {
       const result = await parser.getText();
       if (!result.text.trim()) throw new Error("Ce PDF ne contient pas de texte sélectionnable. Les PDF scannés nécessitent une reconnaissance OCR.");
@@ -101,7 +117,7 @@ export async function extractTrainerNames(file: File) {
   if (!file.name.toLowerCase().endsWith(".pdf")) return [];
   if (file.size > 10 * 1024 * 1024) throw new Error("Le fichier dépasse la limite de 10 Mo.");
 
-  const parser = new PDFParse({ data: new Uint8Array(await file.arrayBuffer()) });
+  const parser = await createPdfParser(new Uint8Array(await file.arrayBuffer()));
   try {
     const { text } = await parser.getText();
     const names = new Map<string, string>();
