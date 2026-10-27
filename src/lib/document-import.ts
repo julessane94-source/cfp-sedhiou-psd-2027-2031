@@ -66,40 +66,72 @@ async function createPdfParser(data: Uint8Array) {
   return new PDFParse({ data });
 }
 
-function rowsFromPlanningTables(result: { pages?: Array<{ tables?: unknown[][][] }> }): ImportRow[] {
+function rowsFromPlanningTables(
+  result: { pages?: Array<{ tables?: unknown[][][] }> },
+  textPages: Array<{ text?: string }> = [],
+): ImportRow[] {
   const rows: ImportRow[] = [];
   const timeRange = (value: string) => {
     const match = value.match(/(\d{1,2})(?:h|:)?(\d{2})?\s*[-–à]\s*(\d{1,2})(?:h|:)?(\d{2})?/i);
     if (!match) return null;
-    const start = `${String(Number(match[1])).padStart(2, "0")}:${String(Number(match[2] || 0)).padStart(2, "0")}`;
-    const end = `${String(Number(match[3])).padStart(2, "0")}:${String(Number(match[4] || 0)).padStart(2, "0")}`;
+    const start = String(Number(match[1])).padStart(2, "0") + ":" + String(Number(match[2] || 0)).padStart(2, "0");
+    const end = String(Number(match[3])).padStart(2, "0") + ":" + String(Number(match[4] || 0)).padStart(2, "0");
     return { start, end };
   };
   const dayPattern = /^(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)$/i;
-  const teacherPattern = /\b(?:M(?:me)?\.?\s*)?([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’-]{2,})\b/;
-  for (const page of result.pages ?? []) for (const rawTable of page.tables ?? []) {
-    const table = rawTable.map((row) => (Array.isArray(row) ? row.map((cell) => String(cell ?? "").trim()) : []));
-    const headerIndex = table.findIndex((row) => row.some((cell) => timeRange(cell)));
-    const header = headerIndex >= 0 ? table[headerIndex] : [];
-    const timeColumns = header.map((cell, index) => ({ index, range: timeRange(cell) })).filter((item): item is { index: number; range: { start: string; end: string } } => Boolean(item.range));
-    const bodyStart = headerIndex >= 0 ? headerIndex + 1 : 0;
-    for (const cells of table.slice(bodyStart)) {
-      const weekday = cells.find((cell) => dayPattern.test(cell.trim()));
-      if (!weekday) continue;
-      for (let column = 1; column < cells.length; column++) {
-        const content = cells[column]?.replace(/\s+/g, " ").trim();
-        if (!content || content.length < 3) continue;
-        let range = timeColumns.find((item) => item.index === column)?.range;
-        if (!range && headerIndex < 0) {
-          const slot = column <= 5 ? column - 1 : column >= 7 && column <= 9 ? column - 2 : -1;
-          if (slot >= 0) range = { start: slot < 5 ? `${String(8 + slot).padStart(2, "0")}:00` : `${String(15 + slot - 5).padStart(2, "0")}:00`, end: slot < 5 ? `${String(9 + slot).padStart(2, "0")}:00` : `${String(16 + slot - 5).padStart(2, "0")}:00` };
+  const teacherPattern = /^\s*(?:M(?:me)?\.?)\s+([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ'’-]{2,})\s*$/i;
+  const roomPattern = /^\s*(?:salle|atelier|laboratoire|local)\s+(.+?)\s*$/i;
+
+  for (const [pageIndex, page] of (result.pages ?? []).entries()) {
+    const pageText = textPages[pageIndex]?.text ?? "";
+    const className = pageText.match(/NIVEAU\s*:\s*([^\r\n]+)/i)?.[1]?.trim() ?? "";
+    for (const rawTable of page.tables ?? []) {
+      const table = rawTable.map((row) => Array.isArray(row)
+        ? row.map((cell) => cell === null ? null : String(cell ?? "").trim())
+        : []);
+      const headerIndex = table.findIndex((row) => row.some((cell) => typeof cell === "string" && timeRange(cell)));
+      if (headerIndex < 0) continue;
+      const header = table[headerIndex];
+      const timeColumns = header
+        .map((cell, index) => ({ index, range: typeof cell === "string" ? timeRange(cell) : null }))
+        .filter((item): item is { index: number; range: { start: string; end: string } } => Boolean(item.range));
+      const byColumn = new Map(timeColumns.map((item) => [item.index, item.range]));
+      const finalEnd = timeColumns.at(-1)?.range.end;
+      for (const cells of table.slice(headerIndex + 1)) {
+        const weekday = cells.find((cell) => typeof cell === "string" && dayPattern.test(cell.trim()));
+        if (typeof weekday !== "string") continue;
+
+        for (const slot of timeColumns) {
+          const value = cells[slot.index];
+          if (typeof value !== "string" || !value.trim()) continue;
+          const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+          const teacherLine = lines.find((line) => teacherPattern.test(line));
+          const trainer = teacherLine?.match(teacherPattern)?.[1] ?? "";
+          const roomLine = lines.find((line) => roomPattern.test(line));
+          const room = roomLine?.trim() ?? "";
+          const subject = lines.find((line) => line !== teacherLine && line !== roomLine) ?? "";
+          if (!subject) continue;
+
+          let endTime = slot.range.end;
+          let next = slot.index + 1;
+          while (next < cells.length && cells[next] === null) next++;
+          if (next >= cells.length) {
+            endTime = finalEnd ?? slot.range.end;
+          } else {
+            const nextRange = byColumn.get(next);
+            if (nextRange && nextRange.start > slot.range.start) endTime = nextRange.start;
+          }
+
+          rows.push({
+            weekday,
+            startTime: slot.range.start,
+            endTime,
+            room,
+            className,
+            trainer,
+            subject,
+          });
         }
-        if (!range) continue;
-        const parts = content.split(/\s{2,}|\n/).map((part) => part.trim()).filter(Boolean);
-        const trainer = content.match(teacherPattern)?.[1] ?? "";
-        const room = content.match(/\b(?:salle|sal|local)\s*[:.-]?\s*([A-Z0-9-]+)/i)?.[1] ?? "";
-        const subject = parts.find((part) => !teacherPattern.test(part) && !/^\d{1,2}h?\b/i.test(part)) ?? content;
-        rows.push({ weekday, startTime: range.start, endTime: range.end, room, className: "", trainer, subject });
       }
     }
   }
@@ -142,8 +174,11 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
     const parser = await createPdfParser(new Uint8Array(buffer));
     try {
       if (kind === "planning") {
-        const tables = await parser.getTable();
-        const gridRows = rowsFromPlanningTables(tables as { pages?: Array<{ tables?: unknown[][][] }> });
+        const [tables, textResult] = await Promise.all([parser.getTable(), parser.getText()]);
+        const gridRows = rowsFromPlanningTables(
+          tables as { pages?: Array<{ tables?: unknown[][][] }> },
+          (textResult as { pages?: Array<{ text?: string }> }).pages ?? [],
+        );
         if (gridRows.length) return gridRows;
       }
       const result = await parser.getText();
