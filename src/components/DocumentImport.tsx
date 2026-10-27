@@ -53,7 +53,7 @@ export default function DocumentImport({ kind }: Props) {
       if (!response.ok) throw new Error(data.error || "Import impossible.");
       setSourceRows([]); setPreviewRows([]);
       setMessage(kind === "planning"
-        ? `${data.imported} créneau(x) ajouté(s) au planning.`
+        ? `${data.imported} créneau(x) ajouté(s) au planning avec ${new Set(sourceRows.map((row) => row.room?.trim()).filter(Boolean)).size} salle(s) enregistrée(s).`
         : `${data.imported} apprenant(s) créé(s), ${data.skipped} doublon(s) ignoré(s). Les matricules ont été générés automatiquement.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Une erreur est survenue.");
