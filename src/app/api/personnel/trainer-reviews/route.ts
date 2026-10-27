@@ -29,7 +29,10 @@ export async function POST(request: Request) {
       if (agentId) {
         const agent = await tx.agent.findUnique({ where: { id: agentId }, select: { id: true, position: true } });
         if (!agent) throw new Error("Le dossier Personnel sélectionné n’existe plus.");
-        await tx.agent.update({ where: { id: agent.id }, data: { firstName, lastName, position: agent.position || "Formateur" } });
+        const confirmedPosition = (agent.position || "Formateur")
+          .replace(/\\s*[·-]\\s*Formateur \\(à confirmer\\)/i, " · Formateur")
+          .trim() || "Formateur";
+        await tx.agent.update({ where: { id: agent.id }, data: { firstName, lastName, position: confirmedPosition } });
       } else {
         const matricule = `FORM-${review.id.slice(-12).toUpperCase()}`;
         const existing = await tx.agent.findUnique({ where: { matricule }, select: { id: true } });
