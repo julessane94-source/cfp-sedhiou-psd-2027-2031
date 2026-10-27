@@ -142,7 +142,18 @@ async function rowsFromPlanningPdf(data: Uint8Array): Promise<ImportRow[]> {
         } else if (fn === pdfjs.OPS.transform) {
           transformMatrix = pdfjs.Util.transform(transformMatrix, args as number[]);
         } else if (fn === pdfjs.OPS.constructPath) {
-          if (args?.[0] !== pdfjs.OPS.stroke) continue;
+          // PDF.js folds the paint operation into args[0]. Table borders in
+          // office-generated PDFs commonly use closeStroke/fillStroke, not
+          // only stroke; ignoring those variants drops the entire grid.
+          const strokeOps = [
+            pdfjs.OPS.stroke,
+            pdfjs.OPS.closeStroke,
+            pdfjs.OPS.fillStroke,
+            pdfjs.OPS.eoFillStroke,
+            pdfjs.OPS.closeFillStroke,
+            pdfjs.OPS.closeEOFillStroke,
+          ];
+          if (!strokeOps.includes(args?.[0] as number)) continue;
           const bounds = args[2] as number[] | undefined;
           if (!bounds || bounds.length < 4 || bounds.some((value) => !Number.isFinite(value))) continue;
           const [x1, y1, x2, y2] = bounds;
