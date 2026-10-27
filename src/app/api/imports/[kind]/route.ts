@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authorizeApi } from "@/lib/permissions";
-import { extractRows, type ImportRow } from "@/lib/document-import";
+import { extractRows, extractTrainerNames, type ImportRow } from "@/lib/document-import";
+import { normalizeRole } from "@/lib/role-routes";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 const days: Record<string, number> = { lundi: 1, lun: 1, monday: 1, mardi: 2, mar: 2, tuesday: 2, mercredi: 3, mer: 3, wednesday: 3, jeudi: 4, jeu: 4, thursday: 4, vendredi: 5, ven: 5, friday: 5, samedi: 6, sam: 6, saturday: 6, dimanche: 7, dim: 7, sunday: 7 };
@@ -33,8 +35,9 @@ async function authorize(kind: string) {
   const permission = kind === "planning" ? "planning.gerer" : "apprenants.gerer";
   const auth = await authorizeApi(permission);
   if (!auth.ok) return { error: auth.response } as const;
+  const role = normalizeRole(auth.session.role);
   const allowed = kind === "planning" ? ["DIRECTEUR", "CHEF_TRAVAUX"] : ["DIRECTEUR", "SURVEILLANT"];
-  if (!allowed.includes(auth.session.role)) return { error: NextResponse.json({ error: "Accès refusé." }, { status: 403 }) } as const;
+  if (!allowed.includes(role)) return { error: NextResponse.json({ error: "Accès refusé." }, { status: 403 }) } as const;
   return { session: auth.session } as const;
 }
 export async function POST(request: Request, context: { params: Promise<{ kind: string }> }) {
@@ -48,9 +51,82 @@ export async function POST(request: Request, context: { params: Promise<{ kind: 
       const form = await request.formData();
       const file = form.get("file");
       if (!(file instanceof File)) return NextResponse.json({ error: "Sélectionnez un fichier." }, { status: 400 });
-      const rows = await extractRows(file, kind);
-      if (!rows.length) return NextResponse.json({ error: "Aucune ligne exploitable n’a été trouvée." }, { status: 400 });
-      return NextResponse.json({ rows });
+      let rows: ImportRow[] = [];
+      let detectedTrainers: string[] = [];
+      try {
+        rows = await extractRows(file, kind);
+      } catch (error) {
+        if (kind !== "planning" || !file.name.toLowerCase().endsWith(".pdf")) throw error;
+        detectedTrainers = await extractTrainerNames(file);
+        if (!detectedTrainers.length) throw error;
+      }
+      if (kind === "planning" && file.name.toLowerCase().endsWith(".pdf") && rows.length) {
+        detectedTrainers = await extractTrainerNames(file);
+      }
+      if (!rows.length && !detectedTrainers.length) return NextResponse.json({ error: "Aucune ligne exploitable n’a été trouvée." }, { status: 400 });
+
+      const trainerMatches = detectedTrainers.length
+        ? await prisma.user.findMany({
+            where: { status: "ACTIVE", role: { name: "FORMATEUR" } },
+            select: { firstName: true, lastName: true },
+          })
+        : [];
+      const trainers = detectedTrainers.map((name) => {
+        const surname = clean(name.replace(/^(?:Mme|M)\.?\s*/i, ""));
+        return {
+          name,
+          matches: trainerMatches
+            .filter((trainer) => clean(trainer.lastName) === surname)
+            .map((trainer) => `${trainer.firstName} ${trainer.lastName}`),
+          personnelMatches: [] as string[],
+        };
+      });
+      if (kind === "planning" && detectedTrainers.length) {
+        const surnameLabels = detectedTrainers.map((name) => name.replace(/^(?:Mme|M)\.?\s*/i, ""));
+        const surnames = surnameLabels.map(clean);
+        const existingAgents = await prisma.agent.findMany({
+          where: { OR: surnameLabels.map((lastName) => ({ lastName: { equals: lastName, mode: "insensitive" as const } })) },
+          select: { firstName: true, lastName: true },
+        });
+        trainers.forEach((trainer) => {
+          const surname = clean(trainer.name.replace(/^(?:Mme|M)\.?\s*/i, ""));
+          trainer.personnelMatches = existingAgents
+            .filter((agent) => clean(agent.lastName) === surname)
+            .map((agent) => `${agent.firstName} ${agent.lastName}`);
+        });
+
+        const previous = await prisma.trainerReview.findMany({
+          where: { normalizedName: { in: surnames } },
+          select: { normalizedName: true },
+        });
+        for (const trainer of detectedTrainers) {
+          const surname = clean(trainer.replace(/^(?:Mme|M)\.?\s*/i, ""));
+          if (!surname) continue;
+          await prisma.trainerReview.upsert({
+            where: { normalizedName: surname },
+            create: { sourceName: trainer, normalizedName: surname, sourceFileName: file.name, createdById: auth.session.userId },
+            update: { sourceName: trainer, sourceFileName: file.name, status: "A_CONFIRMER", reviewedById: null },
+          });
+        }
+        const newNames = [...new Set(surnames.filter((name) => name && !previous.some((item) => item.normalizedName === name)))];
+        const reviewers = await prisma.user.findMany({
+          where: { status: "ACTIVE", role: { name: "CHEF_TRAVAUX" } },
+          select: { id: true },
+        });
+        if (reviewers.length && detectedTrainers.length) {
+          const names = detectedTrainers.join(", ");
+          await prisma.notification.createMany({
+            data: reviewers.map(({ id }) => ({
+              userId: id,
+              title: newNames.length ? "Formateurs à confirmer dans le personnel" : "Mise à jour des formateurs à confirmer",
+              message: `${file.name}: vérifiez les formateurs détectés (${names}) dans la rubrique Personnel, puis confirmez ou complétez chaque dossier.`,
+            })),
+          });
+          revalidatePath("/personnel");
+          revalidatePath("/notifications");
+        }
+      }
+      return NextResponse.json({ rows, trainers });
     }
     const body = await request.json();
     const rows = validateRows(body.rows);

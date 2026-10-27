@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type Props = { kind: "planning" | "apprenants" };
 type Row = Record<string, string | number | string[]>;
+type DetectedTrainer = { name: string; matches: string[]; personnelMatches?: string[] };
 
 const labels: Record<string, string> = {
   weekday: "Jour", startTime: "Début", endTime: "Fin", room: "Salle", className: "Classe / groupe", trainerName: "Formateur", subject: "Cours / classe",
@@ -14,18 +15,24 @@ export default function DocumentImport({ kind }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [sourceRows, setSourceRows] = useState<Record<string, string>[]>([]);
   const [previewRows, setPreviewRows] = useState<Row[]>([]);
+  const [detectedTrainers, setDetectedTrainers] = useState<DetectedTrainer[]>([]);
   const [invalid, setInvalid] = useState(0);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function preview() {
     if (!file) return;
-    setBusy(true); setMessage(""); setPreviewRows([]); setSourceRows([]);
+    setBusy(true); setMessage(""); setPreviewRows([]); setSourceRows([]); setDetectedTrainers([]);
     try {
       const form = new FormData(); form.set("file", file);
       const response = await fetch("/api/imports/" + kind, { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Lecture du document impossible.");
+      setDetectedTrainers(data.trainers ?? []);
+      if (!data.rows?.length && data.trainers?.length) {
+        setMessage(`${data.trainers.length} nom(s) de formateur détecté(s). Aucun tableau de créneaux standard n’a été reconnu dans ce PDF.`);
+        return;
+      }
       setSourceRows(data.rows);
       const check = await fetch("/api/imports/" + kind, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "preview", rows: data.rows }) });
       const checked = await check.json();
@@ -76,6 +83,20 @@ export default function DocumentImport({ kind }: Props) {
         <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">Colonnes requises : Prénom et Nom. Téléphone, e-mail et date de naissance sont facultatifs et pourront être complétés dans la fiche. Les matricules sont générés automatiquement.</p>
       )}
       {message && <p role="status" className="rounded-xl bg-slate-100 p-3 text-sm text-slate-800">{message}</p>}
+      {detectedTrainers.length > 0 && (
+        <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+          <h3 className="font-bold text-cyan-950">Formateurs repérés dans le PDF</h3>
+          <p className="mt-1 text-sm text-cyan-900">Vérifiez les noms abrégés avec la liste actuelle des comptes formateurs.</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {detectedTrainers.map((trainer) => <li key={trainer.name} className="flex flex-wrap gap-x-2">
+              <span className="font-semibold">{trainer.name}</span>
+              <span className="text-cyan-900">{trainer.matches.length ? `Compte(s) correspondant(s) : ${trainer.matches.join(", ")}` : "Aucun compte formateur correspondant."}</span>
+              {trainer.personnelMatches?.length ? <span className="w-full text-cyan-900">Dossier(s) Personnel correspondant(s) : {trainer.personnelMatches.join(", ")}</span> : <span className="w-full text-cyan-900">Ajouté à la liste Personnel pour confirmation ou complément par le Chef des travaux.</span>}
+            </li>)}
+          </ul>
+          {kind === "planning" && <a href="/personnel" className="mt-4 inline-flex rounded-lg bg-cyan-900 px-4 py-2 font-semibold text-white hover:bg-cyan-800">Ouvrir les dossiers à confirmer dans Personnel</a>}
+        </div>
+      )}
       {previewRows.length > 0 && (
         <>
           <div className="max-h-[28rem] overflow-auto rounded-xl border border-slate-200">

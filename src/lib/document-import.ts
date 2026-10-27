@@ -95,3 +95,27 @@ export async function extractRows(file: File, kind: "planning" | "apprenants") {
   }
   throw new Error("Format non pris en charge. Utilisez Excel (.xlsx), Word (.docx) ou PDF avec texte sélectionnable.");
 }
+
+/** Extract the abbreviated teacher labels commonly printed in CFP timetable grids. */
+export async function extractTrainerNames(file: File) {
+  if (!file.name.toLowerCase().endsWith(".pdf")) return [];
+  if (file.size > 10 * 1024 * 1024) throw new Error("Le fichier dépasse la limite de 10 Mo.");
+
+  const parser = new PDFParse({ data: new Uint8Array(await file.arrayBuffer()) });
+  try {
+    const { text } = await parser.getText();
+    const names = new Map<string, string>();
+    const pattern = /\b(Mme?\.?|M\.)\s*([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÿ'’-]*)/g;
+    for (const match of text.matchAll(pattern)) {
+      const surname = match[2].trim().replace(/[.,;:]+$/, "");
+      if (!surname || /^(?:LE CHEF|CHEF DES TRAVAUX)$/i.test(surname)) continue;
+      const title = /^mme/i.test(match[1]) ? "Mme" : "M.";
+      const label = `${title} ${surname}`;
+      const key = normalize(surname);
+      if (key) names.set(key, label);
+    }
+    return [...names.values()].sort((a, b) => a.localeCompare(b, "fr"));
+  } finally {
+    await parser.destroy();
+  }
+}

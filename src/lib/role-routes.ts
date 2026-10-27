@@ -16,7 +16,7 @@ export const roleRoutes: Record<string, string[]> = {
   ],
   CHEF_TRAVAUX: [
     "/dashboard", "/formations", "/apprenants", "/stages", "/infrastructures",
-    "/documents", "/notifications", "/planning",
+    "/documents", "/notifications", "/planning", "/personnel",
   ],
   SURVEILLANT: [
     "/dashboard", "/apprenants", "/stages", "/notifications", "/securite",
@@ -29,5 +29,10 @@ export const roleRoutes: Record<string, string[]> = {
 };
 
 export function normalizeRole(role: string) {
-  return role.toUpperCase().trim().replace(/\s+/g, "_");
+  const normalized = role.toUpperCase().trim().replace(/\s+/g, "_");
+  // Some accounts store the full label while route policy uses the short key.
+  if (["CHEF_DES_TRAVAUX", "CHEF_DE_TRAVAUX"].includes(normalized)) {
+    return "CHEF_TRAVAUX";
+  }
+  return normalized;
 }

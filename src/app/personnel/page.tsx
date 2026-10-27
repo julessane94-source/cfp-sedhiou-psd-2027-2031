@@ -1,25 +1,52 @@
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { normalizeRole } from "@/lib/role-routes";
 import CreaCaiAccess from "./cai-access";
 
 export const dynamic = "force-dynamic";
 
-export default async function PersonnelPage() {
-  await prisma.role.upsert({ where: { name: "CAI_INSERTION" }, update: { description: "Cellule CAI - appui insertion" }, create: { name: "CAI_INSERTION", description: "Cellule CAI - appui insertion" } });
+const normalizeName = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase().trim();
 
-  const [agents, services, roles] = await Promise.all([
-    prisma.agent.findMany({
+export default async function PersonnelPage({ searchParams }: { searchParams: Promise<{ trainer?: string }> }) {
+  const session = await getSession();
+  if (!session) redirect("/connexion");
+  const role = normalizeRole(session.role);
+  const canReviewTrainers = role === "CHEF_TRAVAUX";
+  const canManagePersonnel = role === "DIRECTEUR" || await hasPermission("personnel.gerer");
+  if (!canReviewTrainers && !canManagePersonnel) redirect("/dashboard");
+
+  if (canManagePersonnel) {
+    await prisma.role.upsert({ where: { name: "CAI_INSERTION" }, update: { description: "Cellule CAI - appui insertion" }, create: { name: "CAI_INSERTION", description: "Cellule CAI - appui insertion" } });
+  }
+
+  const [agents, services, roles, trainerReviews] = await Promise.all([
+    canManagePersonnel ? prisma.agent.findMany({
       include: { service: true, user: { select: { email: true, role: { select: { name: true } } } } },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    }),
-    prisma.service.findMany({
+    }) : Promise.resolve([]),
+    canManagePersonnel ? prisma.service.findMany({
       orderBy: { name: "asc" },
-    }),
-    prisma.role.findMany({
+    }) : Promise.resolve([]),
+    canManagePersonnel ? prisma.role.findMany({
       where: { name: { not: "DIRECTEUR" } },
       orderBy: { name: "asc" },
       select: { name: true, description: true },
+    }) : Promise.resolve([]),
+    prisma.trainerReview.findMany({
+      where: { status: "A_CONFIRMER" },
+      include: { agent: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: { updatedAt: "desc" },
     }),
   ]);
+  const surnameLabels = trainerReviews.map((review) => review.sourceName.replace(/^(?:Mme|M)\.?\s*/i, ""));
+  const matchingAgents = surnameLabels.length ? await prisma.agent.findMany({
+    where: { OR: surnameLabels.map((lastName) => ({ lastName: { equals: lastName, mode: "insensitive" as const } })) },
+    select: { id: true, firstName: true, lastName: true },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  }) : [];
+  const params = await searchParams;
 
   return (
     <main className="min-h-screen bg-slate-50 p-4">
@@ -33,8 +60,40 @@ export default async function PersonnelPage() {
             Ressources humaines du CFP Sédhiou
           </p>
         </header>
+        {params.trainer === "confirmed" && <p role="status" className="rounded-lg bg-emerald-100 p-3 text-sm font-medium text-emerald-900">Le dossier du formateur a été confirmé et ajouté au personnel.</p>}
 
-        <section className="rounded-xl bg-white p-5 shadow">
+        {canReviewTrainers && trainerReviews.length === 0 && <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700">Aucun nouveau formateur n’attend de confirmation. Les noms détectés dans les prochains emplois du temps apparaîtront ici.</p>}
+        {trainerReviews.length > 0 && <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <h2 className="text-xl font-bold text-amber-950">Formateurs détectés à confirmer ({trainerReviews.length})</h2>
+          <p className="mt-2 text-sm text-amber-900">Le dernier emploi du temps PDF a fourni ces noms abrégés. Vérifiez chaque identité, choisissez un dossier Personnel existant ou complétez les informations pour créer le dossier.</p>
+          <div className="mt-4 space-y-4">
+            {trainerReviews.map((review) => {
+              const agentsForReview = matchingAgents.filter((agent) => normalizeName(agent.lastName) === review.normalizedName);
+              if (review.agent && !agentsForReview.some((agent) => agent.id === review.agent?.id)) agentsForReview.push(review.agent);
+              const detectedSurname = review.sourceName.replace(/^(?:Mme|M)\.?\s*/i, "");
+              return <form key={review.id} action="/api/personnel/trainer-reviews" method="post" className="grid gap-3 rounded-lg border border-amber-200 bg-white p-4 md:grid-cols-2">
+                <input type="hidden" name="reviewId" value={review.id} />
+                <div className="md:col-span-2"><strong>{review.sourceName}</strong><span className="ml-2 text-xs text-slate-500">Source : {review.sourceFileName || "PDF"}</span></div>
+                <label className="text-sm font-medium">Dossier Personnel à associer
+                  <select name="agentId" defaultValue={review.agentId ?? ""} className="mt-1 w-full rounded-lg border p-2">
+                    <option value="">Créer un nouveau dossier Personnel</option>
+                    {agentsForReview.map((agent) => <option key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</option>)}
+                  </select>
+                </label>
+                <div className="hidden md:block" />
+                <label className="text-sm font-medium">Prénom à confirmer
+                  <input name="firstName" required defaultValue={review.agent?.firstName ?? ""} className="mt-1 w-full rounded-lg border p-2" />
+                </label>
+                <label className="text-sm font-medium">Nom à confirmer
+                  <input name="lastName" required defaultValue={review.agent?.lastName ?? detectedSurname} className="mt-1 w-full rounded-lg border p-2" />
+                </label>
+                <button type="submit" className="rounded-lg bg-amber-700 px-4 py-2 font-semibold text-white md:col-span-2">Confirmer ou mettre à jour le dossier</button>
+              </form>;
+            })}
+          </div>
+        </section>}
+
+        {canManagePersonnel && <section className="rounded-xl bg-white p-5 shadow">
           <h2 className="text-xl font-bold">
             Créer une cellule ou un service
           </h2>
@@ -66,9 +125,9 @@ export default async function PersonnelPage() {
               Enregistrer le service
             </button>
           </form>
-        </section>
+        </section>}
 
-        <section className="rounded-xl bg-white p-5 shadow">
+        {canManagePersonnel && <section className="rounded-xl bg-white p-5 shadow">
           <h2 className="text-xl font-bold">
             Nouvel agent et compte utilisateur
           </h2>
@@ -169,9 +228,9 @@ export default async function PersonnelPage() {
               Enregistrer l'agent
             </button>
           </form>
-        </section>
+        </section>}
 
-        <section className="rounded-xl bg-white p-5 shadow">
+        {canManagePersonnel && <section className="rounded-xl bg-white p-5 shadow">
           <h2 className="text-xl font-bold">
             Personnel ({agents.length})
           </h2>
@@ -223,7 +282,7 @@ export default async function PersonnelPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </section>}
 
       </div>
     </main>

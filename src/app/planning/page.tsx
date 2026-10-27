@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { normalizeRole } from "@/lib/role-routes";
 import { prisma } from "@/lib/prisma";
 
 const weekdays = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
@@ -13,7 +14,7 @@ export default async function PlanningPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/connexion");
-  if (!["DIRECTEUR", "CHEF_TRAVAUX"].includes(session.role)) redirect("/dashboard");
+  if (!["DIRECTEUR", "CHEF_TRAVAUX"].includes(normalizeRole(session.role))) redirect("/dashboard");
 
   const params = await searchParams;
   const requestedDay = Number(params.weekday);
