@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         const agent = await tx.agent.findUnique({ where: { id: agentId }, select: { id: true, position: true } });
         if (!agent) throw new Error("Le dossier Personnel sélectionné n’existe plus.");
         const confirmedPosition = (agent.position || "Formateur")
-          .replace(/\\s*[·-]\\s*Formateur \\(à confirmer\\)/i, " · Formateur")
+          .replace(/\s*[·-]\s*Formateur \(à confirmer\)/i, " · Formateur")
           .trim() || "Formateur";
         await tx.agent.update({ where: { id: agent.id }, data: { firstName, lastName, position: confirmedPosition } });
       } else {
