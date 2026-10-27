@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function StageActions({
@@ -13,6 +14,7 @@ export default function StageActions({
   evaluation: string | null;
   observations: string | null;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function update(data: Record<string, unknown>) {
@@ -24,7 +26,7 @@ export default function StageActions({
       body: JSON.stringify({ id, ...data }),
     });
 
-    window.location.reload();
+    router.refresh();
   }
 
   return (
